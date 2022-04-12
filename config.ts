@@ -4,7 +4,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 export const config = {
-  repoName: "quipuswap-lottery",
+  repoName: "quipuswap-coinflip",
   ligoVersion: "0.33.0",
   preferredLigoFlavor: "pascaligo",
   networks: {
@@ -24,6 +24,11 @@ export const config = {
           pkh: "tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6",
           sk: "edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt",
           pk: "edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4",
+        },
+        carol: {
+          pkh: "tz1MnmtP4uAcgMpeZN6JtyziXeFqqwQG6yn6",
+          sk: "edsk3Sb16jcx9KrgMDsbZDmKnuN11v4AbTtPBgBSBTqYftd8Cq3i1e",
+          pk: "edpku9qEgcyfNNDK6EpMvu5SqXDqWRLuxdMxdyH12ivTUuB1KXfGP4",
         },
         eve: {
           pkh: "tz1MnmtP4uAcgMpeZN6JtyziXeFqqwQG6yn6",

@@ -5,8 +5,8 @@ type coin_side_t        is
 type token_id_t         is nat
 
 type fa2_token_t        is record [
-  token_address           : address;
-  token_id                : token_id_t;
+  address                 : address;
+  id                      : token_id_t;
 ]
 
 type asset_descriptor_t is
@@ -17,6 +17,7 @@ type asset_t            is [@layout:comb] record [
   descriptor              : asset_descriptor_t;
   payout_quotient         : nat;
   bank                    : nat;
+  max_bet_percentage      : nat;
 ]
 
 type game_t             is [@layout:comb] record [
@@ -36,7 +37,7 @@ type storage_t          is [@layout:comb] record [
   network_fee             : tez;
   asset_to_id             : big_map(bytes, nat);
   id_to_asset             : big_map(nat, asset_t);
-  network_bank            : nat;
+  network_bank            : tez;
 ]
 
 type return_t           is list(operation) * storage_t
@@ -67,7 +68,7 @@ type actions_t          is
 | Set_payout_quotient     of nat
 | Set_max_bet             of nat
 | Set_network_fee         of tez
-| Add_asset               of fa2_token_t
+| Add_asset               of asset_descriptor_t
 | Add_asset_bank          of bank_params_t
 | Remove_asset_bank       of bank_params_t
 | Withdraw_network_fee    of nat
