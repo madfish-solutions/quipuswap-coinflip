@@ -56,7 +56,29 @@ function find_asset(
     )
     | None           -> None
     ];
-  } with asset
+  } with asset;
+
+function update_asset_data(
+  const descriptor      : asset_descriptor_t;
+  var storage           : storage_t;
+  const not_found_error : string;
+  const update_fn       : asset_t -> asset_t)
+                        : unit is
+  block {
+    const asset_key = Bytes.pack(descriptor);
+    const asset_id : nat = unwrap(
+      Big_map.find_opt(asset_key, storage.asset_to_id),
+      not_found_error
+    );
+    const asset : asset_t = unwrap(
+      Big_map.find_opt(asset_id, storage.id_to_asset),
+      not_found_error
+    );
+    patch storage.id_to_asset with map [
+      asset_id -> update_fn(asset)
+    ];
+    // storage.id_to_asset[asset_id] := update_fn(asset);
+  } with unit;
 
 function get_opt_fa2_transfer_entrypoint(
   const token           : address)

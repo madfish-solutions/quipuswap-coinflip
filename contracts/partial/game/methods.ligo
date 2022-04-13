@@ -16,7 +16,7 @@ function bet(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(params.bid_size > 0n, Coinflip.zero_amount_in);
+    require(params.bid_size > 0n, Coinflip.bid_too_low);
     var asset : asset_t := unwrap(
       find_asset(params.asset, storage),
       Coinflip.unknown_asset

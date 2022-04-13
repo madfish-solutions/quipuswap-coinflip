@@ -1,4 +1,4 @@
-import { ContractMethod, ContractProvider } from '@taquito/taquito';
+import { ContractMethod, Wallet } from '@taquito/taquito';
 import { b58decode, validateContractAddress, ValidationResult } from '@taquito/utils';
 import { MichelsonV1Expression, MichelsonV1ExpressionExtended } from '@taquito/rpc';
 import { rejects, strictEqual } from 'assert';
@@ -30,16 +30,16 @@ const assertResultMatch = (expected: OperationResult, received: OperationResult)
 };
 
 export const entrypointErrorTestcase = async (
-  method: ContractMethod<ContractProvider>,
+  method: ContractMethod<Wallet>,
   expectedError: string
 ) => rejects(async () => method.send(), (e: Error) => e.message === expectedError);
 
 export const notAdminTestcase = async (
-  method: ContractMethod<ContractProvider>
+  method: ContractMethod<Wallet>
 ) => entrypointErrorTestcase(method, 'Coinflip/not-admin');
 
 export const notServerTestcase = async (
-  method: ContractMethod<ContractProvider>
+  method: ContractMethod<Wallet>
 ) => entrypointErrorTestcase(method, 'Coinflip/not-server');
 
 export function replaceAddressesWithBytes(expr: MichelsonV1Expression) {

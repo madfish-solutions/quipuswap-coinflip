@@ -4,7 +4,7 @@ type coin_side_t        is
 
 type token_id_t         is nat
 
-type fa2_token_t        is record [
+type fa2_token_t        is [@layout:comb] record [
   address                 : address;
   id                      : token_id_t;
 ]
@@ -42,22 +42,32 @@ type storage_t          is [@layout:comb] record [
 
 type return_t           is list(operation) * storage_t
 
-type bet_params_t       is record [
+type bet_params_t       is [@layout:comb] record [
   asset                   : asset_descriptor_t;
   bid_size                : nat;
   coin_side               : coin_side_t;
 ]
 
-type one_reveal_t       is record [
+type one_reveal_t       is [@layout:comb] record [
   game_id                 : nat;
   random_value            : nat;
 ]
 
 type reveal_params_t    is list(one_reveal_t)
 
-type bank_params_t      is record [
-  asset                   : asset_t;
+type bank_params_t      is [@layout:comb] record [
+  asset                   : asset_descriptor_t;
   amount                  : option(nat);
+]
+
+type set_asset_value_t  is [@layout:comb] record [
+  value                   : nat;
+  asset                   : asset_descriptor_t;
+]
+
+type add_asset_t        is [@layout:comb] record [
+  value                   : asset_descriptor_t;
+  r                       : unit;
 ]
 
 type actions_t          is
@@ -65,10 +75,10 @@ type actions_t          is
 | Reveal                  of reveal_params_t
 | Set_admin               of address
 | Set_server              of address
-| Set_payout_quotient     of nat
-| Set_max_bet             of nat
+| Set_payout_quotient     of set_asset_value_t
+| Set_max_bet             of set_asset_value_t
 | Set_network_fee         of tez
-| Add_asset               of asset_descriptor_t
+| Add_asset               of add_asset_t
 | Add_asset_bank          of bank_params_t
 | Remove_asset_bank       of bank_params_t
 | Withdraw_network_fee    of nat

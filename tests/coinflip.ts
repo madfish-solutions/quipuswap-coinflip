@@ -3,13 +3,15 @@ import {
   MichelsonData,
   packDataBytes
 } from '@taquito/michel-codec';
+import { MichelsonV1ExpressionExtended } from '@taquito/rpc';
 import {
   BigMapAbstraction,
   ContractAbstraction,
   ContractMethod,
-  ContractProvider,
   MichelsonMap,
-  TezosToolkit
+  TezosToolkit,
+  UnitValue,
+  Wallet
 } from "@taquito/taquito";
 import { BigNumber } from "bignumber.js";
 import { michelson } from '../build/coinflip.json';
@@ -73,13 +75,13 @@ export const TEZ_ASSET_DESCRIPTOR = { tez: {} };
 export class Coinflip {
   constructor(
     private tezos: TezosToolkit,
-    private contract: ContractAbstraction<ContractProvider>,
+    private contract: ContractAbstraction<Wallet>,
     public storage = defaultStorage
   ) {}
 
   static async init(
     accountOrTezos: string | TezosToolkit,
-    contract: string | ContractAbstraction<ContractProvider>
+    contract: string | ContractAbstraction<Wallet>
   ) {
     const tezos = typeof accountOrTezos === 'string'
       ? await initTezos(accountOrTezos)
@@ -87,7 +89,7 @@ export class Coinflip {
 
     return new Coinflip(
       tezos,
-      typeof contract === 'string' ? await tezos.contract.at(contract) : contract
+      typeof contract === 'string' ? await tezos.wallet.at(contract) : contract
     );
   }
 
@@ -99,7 +101,7 @@ export class Coinflip {
 
     return new Coinflip(
       tezos,
-      await tezos.contract.at(operation.contractAddress),
+      await tezos.wallet.at(operation.contractAddress),
       storage
     );
   }
@@ -139,7 +141,7 @@ export class Coinflip {
     };
   }
 
-  async sendBatch(methods: ContractMethod<ContractProvider>[]) {
+  async sendBatch(methods: ContractMethod<Wallet>[]) {
     const batch = await this.tezos.wallet.batch([]);
     methods.forEach(method => batch.withTransfer(method.toTransferParams()));
     const op = await batch.send();
@@ -148,19 +150,23 @@ export class Coinflip {
     return op;
   }
 
-  async sendSingle(method: ContractMethod<ContractProvider>) {
+  async sendSingle(method: ContractMethod<Wallet>) {
     const op = await method.send();
-    await confirmOperation(this.tezos, op.hash);
+    await confirmOperation(this.tezos, op.opHash);
 
     return op;
   }
 
   getAssetKey(asset: AssetDescriptor) {
     const addAssetTransferParams = this.addAsset(asset).toTransferParams();
-    return packDataBytes(
-      replaceAddressesWithBytes(addAssetTransferParams.parameter!.value) as
+    const paramsMichelson = addAssetTransferParams.parameter!.value as
+      MichelsonV1ExpressionExtended;
+    const toofta1 = packDataBytes(
+      replaceAddressesWithBytes(paramsMichelson.args[0]) as
         MichelsonDataPair<MichelsonData[]>
     ).bytes;
+
+    return toofta1;
   }
 
   async updateAssetByDescriptor(descriptor: AssetDescriptor) {
@@ -189,6 +195,23 @@ export class Coinflip {
       return this.contract.methods.add_asset('tez');
     }
 
-    return this.contract.methods.add_asset('fA2', asset.fA2.address, asset.fA2.id);
+    return this.contract.methods.add_asset(
+      'fA2',
+      asset.fA2.address,
+      asset.fA2.id
+    );
+  }
+
+  setPayoutQuotient(asset: AssetDescriptor, value: BigNumber) {
+    if ('tez' in asset) {
+      return this.contract.methods.set_payout_quotient(value, 'tez');
+    }
+
+    return this.contract.methods.set_payout_quotient(
+      value,
+      'fA2',
+      asset.fA2.address,
+      asset.fA2.id
+    );
   }
 }
