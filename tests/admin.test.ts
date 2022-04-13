@@ -241,6 +241,7 @@ describe('Coinflip admin entrypoints test', function () {
         await emptyCoinflip.sendSingle(
           emptyCoinflip.addAsset(testFA2TokenDescriptor)
         );
+        console.log((await Tezos.rpc.getBlockHeader()).level);
         await emptyCoinflip.updateAssetByDescriptor(testFA2TokenDescriptor);
 
         const addedAsset = emptyCoinflip.getAssetByDescriptor(

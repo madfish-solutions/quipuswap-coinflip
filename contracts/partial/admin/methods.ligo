@@ -21,17 +21,16 @@ function set_payout_quotient(
   block {
     assert_admin(storage);
     require(params.value > 0n, Coinflip.payout_too_low);
-    update_asset_data(
+    var search_result : asset_search_t := unwrap_asset_with_id(
       params.asset,
       storage,
-      Coinflip.unknown_asset,
-      function (var asset : asset_t) : asset_t is record [
-        max_bet_percentage = asset.max_bet_percentage;
-        descriptor         = asset.descriptor;
-        payout_quotient    = params.value;
-        bank               = asset.bank;
-      ]
+      Coinflip.unknown_asset
     );
+    var asset : asset_t := search_result.asset;
+    patch asset with record [
+      payout_quotient = params.value;
+    ];
+    storage.id_to_asset[search_result.id] := asset;
   } with (no_operations, storage);
 
 function set_max_bet(
@@ -40,29 +39,19 @@ function set_max_bet(
                         : return_t is
   block {
     assert_admin(storage);
-    var asset : asset_t := unwrap(
-      find_asset(params.asset, storage),
+    var search_result : asset_search_t := unwrap_asset_with_id(
+      params.asset,
+      storage,
       Coinflip.unknown_asset
     );
+    var asset : asset_t := search_result.asset;
     const max_bet_percentage : nat = precision * precision
       / asset.payout_quotient / percent_precision;
     require(params.value <= max_bet_percentage, Coinflip.max_bet_exceed);
-    update_asset_data(
-      params.asset,
-      storage,
-      Coinflip.unknown_asset,
-      function (var asset : asset_t) : asset_t is block {
-        const max_bet_percentage : nat = precision * precision
-          / asset.payout_quotient / percent_precision;
-        require(params.value <= max_bet_percentage, Coinflip.max_bet_exceed);
-      } with record [
-        max_bet_percentage = params.value;
-        descriptor         = asset.descriptor;
-        payout_quotient    = asset.payout_quotient;
-        bank               = asset.bank;
-      ]
-    );
-    asset.max_bet_percentage := params.value;
+    patch asset with record [
+      max_bet_percentage = params.value;
+    ];
+    storage.id_to_asset[search_result.id] := asset;
   } with (no_operations, storage);
 
 function set_network_fee(
