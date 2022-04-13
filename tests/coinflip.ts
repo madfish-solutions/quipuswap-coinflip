@@ -226,4 +226,8 @@ export class Coinflip {
   setMaxBet(asset: AssetDescriptor, value: BigNumber) {
     return this.setAssetValue('set_max_bet', asset, value);
   }
+
+  setNetworkFee(value: BigNumber) {
+    return this.contract.methods.set_network_fee(value);
+  }
 }

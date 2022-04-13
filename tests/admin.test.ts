@@ -17,12 +17,15 @@ interface AccountContractsProxies {
   allAssetsAddedCoinflip: Coinflip;
 }
 
-const precision = new BigNumber('1e18');
-const percentPrecision = new BigNumber(1e16);
-const defaultPayout = precision.times(1.5);
-const defaultNewPayout = precision.times(1.1);
-const defaultMaxBetPercentage = percentPrecision.times(50);
-const defaultNewMaxBetPercentage = percentPrecision.times(200);
+const PRECISION = new BigNumber('1e18');
+const MIN_NETWORK_FEE = new BigNumber(100);
+const PERCENT_PRECISION = new BigNumber(1e16);
+
+const defaultPayout = PRECISION.times(1.5);
+const defaultNewPayout = PRECISION.times(1.1);
+const defaultMaxBetPercentage = PERCENT_PRECISION.times(50);
+const defaultNewMaxBetPercentage = PERCENT_PRECISION.times(75);
+const defaultNewNetworkFee = new BigNumber(50_000);
 
 describe('Coinflip admin entrypoints test', function () {
   const accountsContractsProxies: Record<string, AccountContractsProxies> = {};
@@ -99,24 +102,6 @@ describe('Coinflip admin entrypoints test', function () {
   });
 
   describe('Testing entrypoint: Set_payout_quotient', () => {
-    beforeAll(async () => {
-      try {
-        const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
-        await allAssetsAddedCoinflip.sendBatch([
-          allAssetsAddedCoinflip.setPayoutQuotient(
-            TEZ_ASSET_DESCRIPTOR,
-            defaultPayout
-          ),
-          allAssetsAddedCoinflip.setPayoutQuotient(
-            testFA2TokenDescriptor,
-            defaultPayout
-          )
-        ]);
-      } catch (e) {
-        console.error(e);
-      }
-    });
-
     it(
       'Should throw error if server account tries to call the entrypoint',
       async () => notAdminTestcase(
@@ -137,25 +122,37 @@ describe('Coinflip admin entrypoints test', function () {
       )
     );
 
+    // Payout quotients are specified in titles without precision
     it(
-      "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient equal to 1e18",
+      "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient equal to 1",
       async () => entrypointErrorTestcase(
         accountsContractsProxies.alice.allAssetsAddedCoinflip.setPayoutQuotient(
           TEZ_ASSET_DESCRIPTOR,
-          precision
+          PRECISION
         ),
         'Coinflip/payout-too-low'
       )
     );
 
     it(
-      "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient less than 1e18",
+      "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient less than 1",
       async () => entrypointErrorTestcase(
         accountsContractsProxies.alice.allAssetsAddedCoinflip.setPayoutQuotient(
           TEZ_ASSET_DESCRIPTOR,
-          precision.minus(1)
+          PRECISION.minus(1)
         ),
         'Coinflip/payout-too-low'
+      )
+    );
+
+    it(
+      "Should throw 'Coinflip/payout-too-high' error on attempt to set payout quotient greater than 2",
+      async () => entrypointErrorTestcase(
+        accountsContractsProxies.alice.allAssetsAddedCoinflip.setPayoutQuotient(
+          TEZ_ASSET_DESCRIPTOR,
+          PRECISION.times(2).plus(1)
+        ),
+        'Coinflip/payout-too-high'
       )
     );
 
@@ -176,22 +173,23 @@ describe('Coinflip admin entrypoints test', function () {
     );
 
     it(
-      'Should set payout quotient for the specified asset',
+      'Should set valid payout quotient for the specified asset',
       async () => {
-        const testFA2TokenPayoutQuotient = precision.times(1.25);
+        const newTezPayoutQuotient = PRECISION.plus(1);
+        const newFA2TokenPayoutQuotient = PRECISION.times(2);
         const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
 
         await allAssetsAddedCoinflip.sendBatch([
-          allAssetsAddedCoinflip.setPayoutQuotient(TEZ_ASSET_DESCRIPTOR, defaultNewPayout),
-          allAssetsAddedCoinflip.setPayoutQuotient(testFA2TokenDescriptor, testFA2TokenPayoutQuotient)
+          allAssetsAddedCoinflip.setPayoutQuotient(TEZ_ASSET_DESCRIPTOR, newTezPayoutQuotient),
+          allAssetsAddedCoinflip.setPayoutQuotient(testFA2TokenDescriptor, newFA2TokenPayoutQuotient)
         ]);
         await allAssetsAddedCoinflip.updateAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
         await allAssetsAddedCoinflip.updateAssetByDescriptor(testFA2TokenDescriptor);
 
         const tezAsset = allAssetsAddedCoinflip.getAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
-        assert.deepEqual(tezAsset.payout_quotient, defaultNewPayout);
+        assert.deepEqual(tezAsset.payout_quotient, newTezPayoutQuotient);
         const testFA2Asset = allAssetsAddedCoinflip.getAssetByDescriptor(testFA2TokenDescriptor);
-        assert.deepEqual(testFA2Asset.payout_quotient, testFA2TokenPayoutQuotient);
+        assert.deepEqual(testFA2Asset.payout_quotient, newFA2TokenPayoutQuotient);
       }
     );
 
@@ -215,24 +213,6 @@ describe('Coinflip admin entrypoints test', function () {
   });
 
   describe('Testing entrypoint: Set_max_bet', () => {
-    beforeAll(async () => {
-      try {
-        const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
-        await allAssetsAddedCoinflip.sendBatch([
-          allAssetsAddedCoinflip.setMaxBet(
-            TEZ_ASSET_DESCRIPTOR,
-            defaultMaxBetPercentage
-          ),
-          allAssetsAddedCoinflip.setMaxBet(
-            testFA2TokenDescriptor,
-            defaultMaxBetPercentage
-          )
-        ]);
-      } catch (e) {
-        console.error(e);
-      }
-    });
-
     it(
       'Should throw error if server account tries to call the entrypoint',
       async () => notAdminTestcase(
@@ -270,12 +250,33 @@ describe('Coinflip admin entrypoints test', function () {
     );
 
     it(
-      "Should throw 'Coinflip/max-bet-exceed' error on attempt to set max bet that \
-causes reward payment fail in case of victory",
+      "Should throw 'Coinflip/max-bet-too-low' error on attempt to set max bet equal to zero",
       async () => entrypointErrorTestcase(
         accountsContractsProxies.alice.allAssetsAddedCoinflip.setMaxBet(
           TEZ_ASSET_DESCRIPTOR,
-          defaultNewMaxBetPercentage.plus(1)
+          new BigNumber(0)
+        ),
+        'Coinflip/max-bet-too-low'
+      )
+    );
+
+    it(
+      "Should throw 'Coinflip/max-bet-exceed' error on attempt to set max bet equal to 100%",
+      async () => entrypointErrorTestcase(
+        accountsContractsProxies.alice.allAssetsAddedCoinflip.setMaxBet(
+          TEZ_ASSET_DESCRIPTOR,
+          PRECISION
+        ),
+        'Coinflip/max-bet-exceed'
+      )
+    );
+
+    it(
+      "Should throw 'Coinflip/max-bet-exceed' error on attempt to set max bet greater than 100%",
+      async () => entrypointErrorTestcase(
+        accountsContractsProxies.alice.allAssetsAddedCoinflip.setMaxBet(
+          TEZ_ASSET_DESCRIPTOR,
+          PRECISION.plus(1)
         ),
         'Coinflip/max-bet-exceed'
       )
@@ -284,20 +285,21 @@ causes reward payment fail in case of victory",
     it(
       "Should set correct max bet for the specified asset",
       async () => {
-        const testFA2TokenMaxBetPercentage = defaultNewMaxBetPercentage.minus(1);
+        const newFA2TokenMaxBetPercentage = PRECISION.minus(1);
+        const newTezMaxBetPercentage = new BigNumber(1);
         const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
 
-        const op = await allAssetsAddedCoinflip.sendBatch([
-          allAssetsAddedCoinflip.setMaxBet(TEZ_ASSET_DESCRIPTOR, defaultNewMaxBetPercentage),
-          allAssetsAddedCoinflip.setMaxBet(testFA2TokenDescriptor, testFA2TokenMaxBetPercentage)
+        await allAssetsAddedCoinflip.sendBatch([
+          allAssetsAddedCoinflip.setMaxBet(TEZ_ASSET_DESCRIPTOR, newTezMaxBetPercentage),
+          allAssetsAddedCoinflip.setMaxBet(testFA2TokenDescriptor, newFA2TokenMaxBetPercentage)
         ]);
         await allAssetsAddedCoinflip.updateAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
         await allAssetsAddedCoinflip.updateAssetByDescriptor(testFA2TokenDescriptor);
 
         const tezAsset = allAssetsAddedCoinflip.getAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
-        assert.deepEqual(tezAsset.max_bet_percentage, defaultNewMaxBetPercentage);
+        assert.deepEqual(tezAsset.max_bet_percentage, newTezMaxBetPercentage);
         const testFA2Asset = allAssetsAddedCoinflip.getAssetByDescriptor(testFA2TokenDescriptor);
-        assert.deepEqual(testFA2Asset.max_bet_percentage, testFA2TokenMaxBetPercentage);
+        assert.deepEqual(testFA2Asset.max_bet_percentage, newFA2TokenMaxBetPercentage);
       }
     );
 
@@ -318,6 +320,57 @@ causes reward payment fail in case of victory",
         console.error(e);
       }
     });
+  });
+
+  describe('Testing entrypoint: Set_network_fee', () => {
+    it(
+      'Should throw error if server account tries to call the entrypoint',
+      async () => notAdminTestcase(
+        accountsContractsProxies.bob.allAssetsAddedCoinflip.setNetworkFee(
+          defaultNewNetworkFee
+        )
+      )
+    );
+
+    it(
+      'Should throw error if a non-server and non-admin account tries to call the entrypoint',
+      async () => notAdminTestcase(
+        accountsContractsProxies.carol.allAssetsAddedCoinflip.setNetworkFee(
+          defaultNewNetworkFee
+        )
+      )
+    );
+
+    it(
+      "Should throw 'Coinflip/net-fee-too-low' error on attempt to set network fee lower than 100 mutez",
+      async () => entrypointErrorTestcase(
+        accountsContractsProxies.alice.allAssetsAddedCoinflip.setNetworkFee(
+          MIN_NETWORK_FEE.minus(1)
+        ),
+        'Coinflip/net-fee-too-low'
+      )
+    );
+
+    it(
+      "Should set correct network fee",
+      async () => {
+        const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
+        
+        await allAssetsAddedCoinflip.sendSingle(
+          allAssetsAddedCoinflip.setNetworkFee(defaultNewNetworkFee)
+        );
+        await allAssetsAddedCoinflip.updateStorage();
+
+        assert.deepEqual(allAssetsAddedCoinflip.storage.network_fee, defaultNewNetworkFee);
+
+        await allAssetsAddedCoinflip.sendSingle(
+          allAssetsAddedCoinflip.setNetworkFee(MIN_NETWORK_FEE)
+        );
+        await allAssetsAddedCoinflip.updateStorage();
+
+        assert.deepEqual(allAssetsAddedCoinflip.storage.network_fee, MIN_NETWORK_FEE);
+      }
+    )
   });
 
   describe('Testing entrypoint: Add_asset', () => {

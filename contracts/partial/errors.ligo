@@ -12,6 +12,8 @@ module Coinflip is {
   const invalid_amount  : string = "Coinflip/invalid-amount";
   const no_such_account : string = "Coinflip/no-such-account";
   const payout_too_low  : string = "Coinflip/payout-too-low";
+  const payout_too_high : string = "Coinflip/payout-too-high";
+  const max_bet_too_low : string = "Coinflip/max-bet-too-low";
   const max_bet_exceed  : string = "Coinflip/max-bet-exceed";
   const net_fee_too_low : string = "Coinflip/net-fee-too-low";
 }

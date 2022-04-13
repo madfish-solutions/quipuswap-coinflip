@@ -21,6 +21,7 @@ function set_payout_quotient(
   block {
     assert_admin(storage);
     require(params.value > precision, Coinflip.payout_too_low);
+    require(params.value <= 2n * precision, Coinflip.payout_too_high);
     var search_result : asset_search_t := unwrap_asset_with_id(
       params.asset,
       storage,
@@ -39,15 +40,14 @@ function set_max_bet(
                         : return_t is
   block {
     assert_admin(storage);
+    require(params.value > 0n, Coinflip.max_bet_too_low);
+    require(params.value < precision, Coinflip.max_bet_exceed);
     var search_result : asset_search_t := unwrap_asset_with_id(
       params.asset,
       storage,
       Coinflip.unknown_asset
     );
     var asset : asset_t := search_result.asset;
-    const max_bet_percentage : nat = precision * precision
-      / abs(asset.payout_quotient - precision);
-    require(params.value <= max_bet_percentage, Coinflip.max_bet_exceed);
     patch asset with record [
       max_bet_percentage = params.value;
     ];
