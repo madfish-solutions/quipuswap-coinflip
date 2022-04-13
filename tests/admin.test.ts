@@ -20,8 +20,9 @@ interface AccountContractsProxies {
 const precision = new BigNumber('1e18');
 const percentPrecision = new BigNumber(1e16);
 const defaultPayout = precision.times(1.5);
+const defaultNewPayout = precision.times(1.1);
 const defaultMaxBetPercentage = percentPrecision.times(50);
-const defaultNewPayoutQuotient = precision.times(2.5);
+const defaultNewMaxBetPercentage = percentPrecision.times(200);
 
 describe('Coinflip admin entrypoints test', function () {
   const accountsContractsProxies: Record<string, AccountContractsProxies> = {};
@@ -29,7 +30,6 @@ describe('Coinflip admin entrypoints test', function () {
 
   beforeAll(async () => {
     try {
-      console.log('beforeAll admin');
       Tezos.setSignerProvider(signerAlice);
       const emptyCoinflipContractAddress: string = await migrate(
         Tezos,
@@ -93,7 +93,6 @@ describe('Coinflip admin entrypoints test', function () {
           };
         })
       );
-      console.log('beforeAll admin finished');
     } catch (e) {
       console.error(e);
     }
@@ -101,7 +100,6 @@ describe('Coinflip admin entrypoints test', function () {
 
   describe('Testing entrypoint: Set_payout_quotient', () => {
     beforeAll(async () => {
-      console.log('beforeAll Set_payout_quotient');
       try {
         const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
         await allAssetsAddedCoinflip.sendBatch([
@@ -114,7 +112,6 @@ describe('Coinflip admin entrypoints test', function () {
             defaultPayout
           )
         ]);
-        console.log('beforeAll Set_payout_quotient finished');
       } catch (e) {
         console.error(e);
       }
@@ -125,7 +122,7 @@ describe('Coinflip admin entrypoints test', function () {
       async () => notAdminTestcase(
         accountsContractsProxies.bob.allAssetsAddedCoinflip.setPayoutQuotient(
           TEZ_ASSET_DESCRIPTOR,
-          defaultNewPayoutQuotient
+          defaultNewPayout
         )
       )
     );
@@ -135,17 +132,28 @@ describe('Coinflip admin entrypoints test', function () {
       async () => notAdminTestcase(
         accountsContractsProxies.carol.allAssetsAddedCoinflip.setPayoutQuotient(
           TEZ_ASSET_DESCRIPTOR,
-          defaultNewPayoutQuotient
+          defaultNewPayout
         )
       )
     );
 
     it(
-      "Should throw 'Coinflip/payout-too-low' error on attempt to set zero payout quotient",
+      "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient equal to 1e18",
       async () => entrypointErrorTestcase(
         accountsContractsProxies.alice.allAssetsAddedCoinflip.setPayoutQuotient(
           TEZ_ASSET_DESCRIPTOR,
-          new BigNumber(0)
+          precision
+        ),
+        'Coinflip/payout-too-low'
+      )
+    );
+
+    it(
+      "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient less than 1e18",
+      async () => entrypointErrorTestcase(
+        accountsContractsProxies.alice.allAssetsAddedCoinflip.setPayoutQuotient(
+          TEZ_ASSET_DESCRIPTOR,
+          precision.minus(1)
         ),
         'Coinflip/payout-too-low'
       )
@@ -161,7 +169,7 @@ describe('Coinflip admin entrypoints test', function () {
               id: new BigNumber(0)
             }
           },
-          defaultNewPayoutQuotient
+          defaultNewPayout
         ),
         'Coinflip/unknown-asset'
       )
@@ -173,20 +181,143 @@ describe('Coinflip admin entrypoints test', function () {
         const testFA2TokenPayoutQuotient = precision.times(1.25);
         const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
 
-        const op = await allAssetsAddedCoinflip.sendBatch([
-          allAssetsAddedCoinflip.setPayoutQuotient(TEZ_ASSET_DESCRIPTOR, defaultNewPayoutQuotient),
+        await allAssetsAddedCoinflip.sendBatch([
+          allAssetsAddedCoinflip.setPayoutQuotient(TEZ_ASSET_DESCRIPTOR, defaultNewPayout),
           allAssetsAddedCoinflip.setPayoutQuotient(testFA2TokenDescriptor, testFA2TokenPayoutQuotient)
         ]);
-        console.log((await Tezos.rpc.getBlockHeader()).level);
         await allAssetsAddedCoinflip.updateAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
         await allAssetsAddedCoinflip.updateAssetByDescriptor(testFA2TokenDescriptor);
 
         const tezAsset = allAssetsAddedCoinflip.getAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
-        assert.deepEqual(tezAsset.payout_quotient, defaultNewPayoutQuotient);
+        assert.deepEqual(tezAsset.payout_quotient, defaultNewPayout);
         const testFA2Asset = allAssetsAddedCoinflip.getAssetByDescriptor(testFA2TokenDescriptor);
         assert.deepEqual(testFA2Asset.payout_quotient, testFA2TokenPayoutQuotient);
       }
     );
+
+    afterAll(async () => {
+      try {
+        const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
+        await allAssetsAddedCoinflip.sendBatch([
+          allAssetsAddedCoinflip.setPayoutQuotient(
+            TEZ_ASSET_DESCRIPTOR,
+            defaultPayout
+          ),
+          allAssetsAddedCoinflip.setPayoutQuotient(
+            testFA2TokenDescriptor,
+            defaultPayout
+          )
+        ]);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  });
+
+  describe('Testing entrypoint: Set_max_bet', () => {
+    beforeAll(async () => {
+      try {
+        const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
+        await allAssetsAddedCoinflip.sendBatch([
+          allAssetsAddedCoinflip.setMaxBet(
+            TEZ_ASSET_DESCRIPTOR,
+            defaultMaxBetPercentage
+          ),
+          allAssetsAddedCoinflip.setMaxBet(
+            testFA2TokenDescriptor,
+            defaultMaxBetPercentage
+          )
+        ]);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    it(
+      'Should throw error if server account tries to call the entrypoint',
+      async () => notAdminTestcase(
+        accountsContractsProxies.bob.allAssetsAddedCoinflip.setMaxBet(
+          TEZ_ASSET_DESCRIPTOR,
+          defaultNewMaxBetPercentage
+        )
+      )
+    );
+
+    it(
+      'Should throw error if a non-server and non-admin account tries to call the entrypoint',
+      async () => notAdminTestcase(
+        accountsContractsProxies.carol.allAssetsAddedCoinflip.setMaxBet(
+          TEZ_ASSET_DESCRIPTOR,
+          defaultNewMaxBetPercentage
+        )
+      )
+    );
+
+    it(
+      "Should throw 'Coinflip/unknown-asset' error on attempt to set max bet for unknown asset",
+      async () => entrypointErrorTestcase(
+        accountsContractsProxies.alice.allAssetsAddedCoinflip.setMaxBet(
+          {
+            fA2: {
+              address: 'KT1HrQWkSFe7ugihjoMWwQ7p8ja9e18LdUFn',
+              id: new BigNumber(0)
+            }
+          },
+          defaultNewMaxBetPercentage
+        ),
+        'Coinflip/unknown-asset'
+      )
+    );
+
+    it(
+      "Should throw 'Coinflip/max-bet-exceed' error on attempt to set max bet that \
+causes reward payment fail in case of victory",
+      async () => entrypointErrorTestcase(
+        accountsContractsProxies.alice.allAssetsAddedCoinflip.setMaxBet(
+          TEZ_ASSET_DESCRIPTOR,
+          defaultNewMaxBetPercentage.plus(1)
+        ),
+        'Coinflip/max-bet-exceed'
+      )
+    );
+
+    it(
+      "Should set correct max bet for the specified asset",
+      async () => {
+        const testFA2TokenMaxBetPercentage = defaultNewMaxBetPercentage.minus(1);
+        const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
+
+        const op = await allAssetsAddedCoinflip.sendBatch([
+          allAssetsAddedCoinflip.setMaxBet(TEZ_ASSET_DESCRIPTOR, defaultNewMaxBetPercentage),
+          allAssetsAddedCoinflip.setMaxBet(testFA2TokenDescriptor, testFA2TokenMaxBetPercentage)
+        ]);
+        await allAssetsAddedCoinflip.updateAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
+        await allAssetsAddedCoinflip.updateAssetByDescriptor(testFA2TokenDescriptor);
+
+        const tezAsset = allAssetsAddedCoinflip.getAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
+        assert.deepEqual(tezAsset.max_bet_percentage, defaultNewMaxBetPercentage);
+        const testFA2Asset = allAssetsAddedCoinflip.getAssetByDescriptor(testFA2TokenDescriptor);
+        assert.deepEqual(testFA2Asset.max_bet_percentage, testFA2TokenMaxBetPercentage);
+      }
+    );
+
+    afterAll(async () => {
+      try {
+        const { allAssetsAddedCoinflip } = accountsContractsProxies.alice;
+        await allAssetsAddedCoinflip.sendBatch([
+          allAssetsAddedCoinflip.setMaxBet(
+            TEZ_ASSET_DESCRIPTOR,
+            defaultMaxBetPercentage
+          ),
+          allAssetsAddedCoinflip.setMaxBet(
+            testFA2TokenDescriptor,
+            defaultMaxBetPercentage
+          )
+        ]);
+      } catch (e) {
+        console.error(e);
+      }
+    });
   });
 
   describe('Testing entrypoint: Add_asset', () => {
@@ -241,7 +372,6 @@ describe('Coinflip admin entrypoints test', function () {
         await emptyCoinflip.sendSingle(
           emptyCoinflip.addAsset(testFA2TokenDescriptor)
         );
-        console.log((await Tezos.rpc.getBlockHeader()).level);
         await emptyCoinflip.updateAssetByDescriptor(testFA2TokenDescriptor);
 
         const addedAsset = emptyCoinflip.getAssetByDescriptor(
@@ -274,7 +404,7 @@ describe('Coinflip admin entrypoints test', function () {
     );
 
     it(
-      "Should throw 'Coinflip/invalid-asset' error on attempt to add non-existent asset",
+      "Should throw 'Coinflip/invalid-asset' error on attempt to add unknown asset",
       async () => entrypointErrorTestcase(
         accountsContractsProxies.alice.allAssetsAddedCoinflip.addAsset({
           fA2: {

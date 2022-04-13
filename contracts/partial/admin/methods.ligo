@@ -20,7 +20,7 @@ function set_payout_quotient(
                         : return_t is
   block {
     assert_admin(storage);
-    require(params.value > 0n, Coinflip.payout_too_low);
+    require(params.value > precision, Coinflip.payout_too_low);
     var search_result : asset_search_t := unwrap_asset_with_id(
       params.asset,
       storage,
@@ -46,7 +46,7 @@ function set_max_bet(
     );
     var asset : asset_t := search_result.asset;
     const max_bet_percentage : nat = precision * precision
-      / asset.payout_quotient / percent_precision;
+      / abs(asset.payout_quotient - precision);
     require(params.value <= max_bet_percentage, Coinflip.max_bet_exceed);
     patch asset with record [
       max_bet_percentage = params.value;

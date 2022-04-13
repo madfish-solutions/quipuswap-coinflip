@@ -202,16 +202,28 @@ export class Coinflip {
     );
   }
 
-  setPayoutQuotient(asset: AssetDescriptor, value: BigNumber) {
+  private setAssetValue(
+    methodName: string,
+    asset: AssetDescriptor,
+    value: BigNumber
+  ) {
     if ('tez' in asset) {
-      return this.contract.methods.set_payout_quotient(value, 'tez');
+      return this.contract.methods[methodName](value, 'tez');
     }
 
-    return this.contract.methods.set_payout_quotient(
+    return this.contract.methods[methodName](
       value,
       'fA2',
       asset.fA2.address,
       asset.fA2.id
     );
+  }
+
+  setPayoutQuotient(asset: AssetDescriptor, value: BigNumber) {
+    return this.setAssetValue('set_payout_quotient', asset, value);
+  }
+
+  setMaxBet(asset: AssetDescriptor, value: BigNumber) {
+    return this.setAssetValue('set_max_bet', asset, value);
   }
 }
