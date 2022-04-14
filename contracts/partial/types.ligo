@@ -20,11 +20,6 @@ type asset_t            is [@layout:comb] record [
   max_bet_percentage      : nat;
 ]
 
-type asset_search_t     is [@layout:comb] record [
-  asset                   : asset_t;
-  id                      : nat;
-]
-
 type game_t             is [@layout:comb] record [
   asset                   : asset_descriptor_t;
   start                   : timestamp;
@@ -67,12 +62,13 @@ type bank_params_t      is [@layout:comb] record [
 
 type set_asset_value_t  is [@layout:comb] record [
   value                   : nat;
-  asset                   : asset_descriptor_t;
+  asset_id                : nat;
 ]
 
 type add_asset_t        is [@layout:comb] record [
-  value                   : asset_descriptor_t;
-  r                       : unit;
+  payout_quotient         : nat;
+  max_bet_percentage      : nat;
+  asset                   : asset_descriptor_t;
 ]
 
 type actions_t          is

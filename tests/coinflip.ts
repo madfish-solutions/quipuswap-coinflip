@@ -10,16 +10,16 @@ import {
   ContractMethod,
   MichelsonMap,
   TezosToolkit,
-  UnitValue,
   Wallet
-} from "@taquito/taquito";
-import { BigNumber } from "bignumber.js";
-import { michelson } from '../build/coinflip.json';
-import { confirmOperation } from "../utils/confirmation";
-import { initTezos } from "../utils/helpers";
-import { replaceAddressesWithBytes } from './helpers';
+} from '@taquito/taquito';
+import { Schema } from '@taquito/michelson-encoder';
+import { BigNumber } from 'bignumber.js';
 
-import defaultStorage from "./storage/coinflip";
+import { michelson } from '../build/coinflip.json';
+import { confirmOperation } from '../utils/confirmation';
+import { initTezos } from '../utils/helpers';
+import { replaceAddressesWithBytes } from './helpers';
+import defaultStorage from './storage/coinflip';
 
 export type CoinSide = { head: {} } | { tail: {} };
 
@@ -69,6 +69,22 @@ interface RawCoinflipStorage extends Omit<
   CoinflipStorage,
   BigMapName
 >, Record<BigMapName, BigMapAbstraction> {}
+
+const assetDescriptorSchema = new Schema({
+  prim: 'or',
+  args: [
+    {
+      prim: 'pair',
+      args: [
+        { prim: 'address', annots: ['%address'] },
+        { prim: 'nat', annots: ['%id'] }
+      ],
+      annots: ['%fA2']
+    },
+    { prim: 'unit', annots: ['%tez'] }
+  ],
+  annots: ['%asset']
+});
 
 export const TEZ_ASSET_DESCRIPTOR = { tez: {} };
 
@@ -158,15 +174,11 @@ export class Coinflip {
   }
 
   getAssetKey(asset: AssetDescriptor) {
-    const addAssetTransferParams = this.addAsset(asset).toTransferParams();
-    const paramsMichelson = addAssetTransferParams.parameter!.value as
-      MichelsonV1ExpressionExtended;
-    const toofta1 = packDataBytes(
-      replaceAddressesWithBytes(paramsMichelson.args[0]) as
-        MichelsonDataPair<MichelsonData[]>
-    ).bytes;
+    const keyToEncode = replaceAddressesWithBytes(
+      assetDescriptorSchema.Encode(asset)
+    );
 
-    return toofta1;
+    return packDataBytes(keyToEncode).bytes;
   }
 
   async updateAssetByDescriptor(descriptor: AssetDescriptor) {
@@ -190,12 +202,22 @@ export class Coinflip {
     return this.storage.id_to_asset.get(assetId.toFixed());
   }
 
-  addAsset(asset: AssetDescriptor) {
+  addAsset(
+    payoutQuotient: BigNumber.Value,
+    maxBetPercentage: BigNumber.Value,
+    asset: AssetDescriptor
+  ) {
     if ('tez' in asset) {
-      return this.contract.methods.add_asset('tez');
+      return this.contract.methods.add_asset(
+        payoutQuotient,
+        maxBetPercentage,
+        'tez'
+      );
     }
 
     return this.contract.methods.add_asset(
+      payoutQuotient,
+      maxBetPercentage,
       'fA2',
       asset.fA2.address,
       asset.fA2.id
@@ -204,30 +226,21 @@ export class Coinflip {
 
   private setAssetValue(
     methodName: string,
-    asset: AssetDescriptor,
-    value: BigNumber
+    assetId: BigNumber.Value,
+    value: BigNumber.Value
   ) {
-    if ('tez' in asset) {
-      return this.contract.methods[methodName](value, 'tez');
-    }
-
-    return this.contract.methods[methodName](
-      value,
-      'fA2',
-      asset.fA2.address,
-      asset.fA2.id
-    );
+    return this.contract.methods[methodName](value, assetId);
   }
 
-  setPayoutQuotient(asset: AssetDescriptor, value: BigNumber) {
-    return this.setAssetValue('set_payout_quotient', asset, value);
+  setPayoutQuotient(assetId: BigNumber.Value, value: BigNumber.Value) {
+    return this.setAssetValue('set_payout_quotient', assetId, value);
   }
 
-  setMaxBet(asset: AssetDescriptor, value: BigNumber) {
-    return this.setAssetValue('set_max_bet', asset, value);
+  setMaxBet(assetId: BigNumber.Value, value: BigNumber.Value) {
+    return this.setAssetValue('set_max_bet', assetId, value);
   }
 
-  setNetworkFee(value: BigNumber) {
+  setNetworkFee(value: BigNumber.Value) {
     return this.contract.methods.set_network_fee(value);
   }
 }

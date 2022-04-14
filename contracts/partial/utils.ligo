@@ -8,22 +8,6 @@
                         : unit is 
   assert_with_error(param, error);
 
-[@inline] function assert_sender(
-  const expected        : address;
-  const error           : string)
-                        : unit is
-  require(Tezos.sender = expected, error);
-
-[@inline] function assert_admin(
-  const storage         : storage_t)
-                        : unit is
-  assert_sender(storage.admin, Coinflip.not_admin);
-
-[@inline] function assert_server(
-  const storage         : storage_t)
-                        : unit is
-  assert_sender(storage.server, Coinflip.not_server);
-
 [@inline] function unwrap(
   const param           : option(_a);
   const error           : string)
@@ -39,41 +23,27 @@
                         : nat is
   unwrap(is_nat(value), err);
 
-function find_asset(
-  const descriptor      : asset_descriptor_t;
-  const storage         : storage_t)
-                        : option(asset_t) is
-  block {
-    const asset_key = Bytes.pack(descriptor);
-    const asset_id_opt : option(nat) = Big_map.find_opt(
-      asset_key,
-      storage.asset_to_id
-    );
-    const asset: option(asset_t) = case asset_id_opt of [
-    | Some(asset_id) -> Big_map.find_opt(
-      asset_id,
-      storage.id_to_asset
-    )
-    | None           -> None
-    ];
-  } with asset;
+[@inline] function unwrap_asset(
+  const asset_id          : nat;
+  const id_to_asset       : big_map(nat, asset_t))
+                          : asset_t is
+  unwrap(id_to_asset[asset_id], Coinflip.unknown_asset);
 
-function unwrap_asset_with_id(
-  const descriptor      : asset_descriptor_t;
-  const storage         : storage_t;
-  const error           : string)
-                        : asset_search_t is
+[@inline] function assert_valid_payout(
+  const value             : nat)
+                          : unit is
   block {
-    const asset_key = Bytes.pack(descriptor);
-    const asset_id : nat = unwrap(
-      Big_map.find_opt(asset_key, storage.asset_to_id),
-      error
-    );
-    var asset : asset_t := unwrap(
-      Big_map.find_opt(asset_id, storage.id_to_asset),
-      error
-    );
-  } with record [ asset = asset; id = asset_id; ];
+    require(value > precision, Coinflip.payout_too_low);
+    require(value <= 2n * precision, Coinflip.payout_too_high);
+  } with unit;
+
+[@inline] function assert_valid_max_bet(
+  const value             : nat)
+                          : unit is
+  block {
+    require(value > 0n, Coinflip.max_bet_too_low);
+    require(value < precision, Coinflip.max_bet_exceed);
+  } with unit;
 
 function get_opt_fa2_transfer_entrypoint(
   const token           : address)

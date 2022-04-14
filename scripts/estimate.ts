@@ -1,7 +1,8 @@
 // A code example for estimating entrypoints performance
 import { confirmOperation } from '../utils/confirmation';
 import { initTezos } from "../utils/helpers";
-import { michelson as contractCode } from "../build/calculator.json";
+import { michelson as contractCode } from "../build/coinflip.json";
+import defaultStorage from '../storage/coinflip';
 import { alice } from "./sandbox/accounts";
 
 (async () => {
@@ -10,7 +11,7 @@ import { alice } from "./sandbox/accounts";
   console.log("Originating test contract...");
   const operation = await Tezos.wallet.originate({
     code: contractCode,
-    storage: { owner: alice.pkh, display_value: 0, memory_value: 0 }
+    storage: defaultStorage
   }).send();
 
   console.log("Waiting for confirmation...");

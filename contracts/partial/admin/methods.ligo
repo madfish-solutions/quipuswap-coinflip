@@ -19,19 +19,11 @@ function set_payout_quotient(
   var storage           : storage_t)
                         : return_t is
   block {
-    assert_admin(storage);
-    require(params.value > precision, Coinflip.payout_too_low);
-    require(params.value <= 2n * precision, Coinflip.payout_too_high);
-    var search_result : asset_search_t := unwrap_asset_with_id(
-      params.asset,
-      storage,
-      Coinflip.unknown_asset
-    );
-    var asset : asset_t := search_result.asset;
-    patch asset with record [
-      payout_quotient = params.value;
-    ];
-    storage.id_to_asset[search_result.id] := asset;
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    assert_valid_payout(params.value);
+    var asset : asset_t := unwrap_asset(params.asset_id, storage.id_to_asset);
+    asset.payout_quotient := params.value;
+    storage.id_to_asset[params.asset_id] := asset;
   } with (no_operations, storage);
 
 function set_max_bet(
@@ -39,19 +31,11 @@ function set_max_bet(
   var storage           : storage_t)
                         : return_t is
   block {
-    assert_admin(storage);
-    require(params.value > 0n, Coinflip.max_bet_too_low);
-    require(params.value < precision, Coinflip.max_bet_exceed);
-    var search_result : asset_search_t := unwrap_asset_with_id(
-      params.asset,
-      storage,
-      Coinflip.unknown_asset
-    );
-    var asset : asset_t := search_result.asset;
-    patch asset with record [
-      max_bet_percentage = params.value;
-    ];
-    storage.id_to_asset[search_result.id] := asset;
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    assert_valid_max_bet(params.value);
+    var asset : asset_t := unwrap_asset(params.asset_id, storage.id_to_asset);
+    asset.max_bet_percentage := params.value;
+    storage.id_to_asset[params.asset_id] := asset;
   } with (no_operations, storage);
 
 function set_network_fee(
@@ -59,8 +43,7 @@ function set_network_fee(
   var storage           : storage_t)
                         : return_t is
   block {
-    assert_admin(storage);
-    require(new_fee >= min_network_fee, Coinflip.net_fee_too_low);
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
     storage.network_fee := new_fee;
   } with (no_operations, storage);
 
@@ -69,17 +52,24 @@ function add_asset(
   var storage           : storage_t)
                         : return_t is
   block {
-    const asset : asset_descriptor_t = params.value;
-    assert_admin(storage);
-    assert_none_with_error(find_asset(asset, storage), Coinflip.asset_exists);
+    const asset : asset_descriptor_t = params.asset;
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    assert_valid_payout(params.payout_quotient);
+    assert_valid_max_bet(params.max_bet_percentage);
     assert_valid_asset(asset, Coinflip.invalid_asset);
 
-    storage.asset_to_id[Bytes.pack(asset)] := storage.assets_counter;
+    const asset_key = Bytes.pack(asset);
+    assert_none_with_error(
+      storage.asset_to_id[asset_key],
+      Coinflip.asset_exists
+    );
+
+    storage.asset_to_id[asset_key] := storage.assets_counter;
     storage.id_to_asset[storage.assets_counter] := record [
       descriptor         = asset;
-      payout_quotient    = default_payout;
+      payout_quotient    = params.payout_quotient;
       bank               = 0n;
-      max_bet_percentage = default_max_bet;
+      max_bet_percentage = params.max_bet_percentage;
     ];
     storage.assets_counter := storage.assets_counter + 1n;
   } with (no_operations, storage);
