@@ -2,11 +2,20 @@ import {
   TezosToolkit,
   OriginationOperation,
   Contract,
-  TransactionOperation,
+  ContractMethod,
+  ContractProvider,
+  BigMapAbstraction
 } from "@taquito/taquito";
 
 import { confirmOperation } from "../../scripts/confirmation";
 import { michelson } from '../contracts/fa2.json';
+import {
+  BatchContentsEntry,
+  cloneMichelsonMap,
+  sendBatch,
+  sendSingle
+} from "../helpers";
+import { fa2Storage as defaultStorage } from '../storage/fa2';
 
 import {
   UpdateOperatorParam,
@@ -16,15 +25,25 @@ import {
   Minter,
 } from "../types/FA2";
 
-export class FA2 {
-  contract: Contract;
-  storage: FA2Storage;
-  tezos: TezosToolkit;
+type BigMapName =
+  | 'account_info'
+  | 'token_info'
+  | 'metadata'
+  | 'token_metadata'
+  | 'minters_info'
+  | 'permits';
 
-  constructor(contract: Contract, tezos: TezosToolkit) {
-    this.contract = contract;
-    this.tezos = tezos;
-  }
+interface RawFA2Storage extends Omit<
+  FA2Storage,
+  BigMapName
+>, Record<BigMapName, BigMapAbstraction> {}
+
+export class FA2 {
+  constructor(
+    public contract: Contract,
+    public tezos: TezosToolkit,
+    public storage = defaultStorage
+  ) {}
 
   static async init(fa2Address: string, tezos: TezosToolkit): Promise<FA2> {
     return new FA2(await tezos.contract.at(fa2Address), tezos);
@@ -42,72 +61,72 @@ export class FA2 {
     return new FA2(await tezos.contract.at(operation.contractAddress), tezos);
   }
 
-  async updateStorage(maps = {}): Promise<void> {
-    const storage: FA2Storage = await this.contract.storage();
-
-    this.storage = storage;
-
-    for (const key in maps) {
-      this.storage[key] = await maps[key].reduce(
-        async (prev: any, current: any) => {
-          try {
-            return {
-              ...(await prev),
-              [current]: await storage[key].get(current),
-            };
-          } catch (ex) {
-            return {
-              ...(await prev),
-              [current]: 0,
-            };
-          }
-        },
-        Promise.resolve({})
-      );
-    }
+  async updateStorage(
+    maps: Partial<Record<BigMapName, string[]>> = {}
+  ) {
+    const {
+      account_info: oldAccountInfo,
+      token_info: oldTokenInfo,
+      metadata: oldMetadata,
+      token_metadata: oldTokenMetadata,
+      minters_info: oldMintersInfo,
+      permits: oldPermits,
+    } = this.storage;
+    const michelsonMaps = {
+      account_info: cloneMichelsonMap(oldAccountInfo),
+      token_info: cloneMichelsonMap(oldTokenInfo),
+      metadata: cloneMichelsonMap(oldMetadata),
+      token_metadata: cloneMichelsonMap(oldTokenMetadata),
+      minters_info: cloneMichelsonMap(oldMintersInfo),
+      permits: cloneMichelsonMap(oldPermits)
+    };
+    const rawStorage = await this.contract.storage<RawFA2Storage>();
+    await Promise.all(
+      Object.keys(maps).map(async mapName => {
+        const keysToUpdate = maps[mapName];
+        if (keysToUpdate) {
+          await Promise.all(keysToUpdate.map(async key => {
+            const newValue = await rawStorage[mapName as BigMapName].get(key);
+            if (newValue === undefined) {
+              michelsonMaps[mapName].delete(key);
+            } else {
+              michelsonMaps[mapName].set(key, newValue);
+            }
+          }));
+        }
+      })
+    );
+    this.storage = {
+      ...rawStorage,
+      ...michelsonMaps
+    };
   }
 
-  async transfer(params: TransferParam[]): Promise<TransactionOperation> {
-    const operation: TransactionOperation = await this.contract.methods
-      .transfer(params)
-      .send();
-
-    await confirmOperation(this.tezos, operation.hash);
-
-    return operation;
+  getTokenBalance(accountPkh: string, tokenId: string) {
+    return this.storage.account_info.get(accountPkh).balances.get(tokenId);
   }
 
-  async updateOperators(
-    updateOperatorsParams: UpdateOperatorParam[]
-  ): Promise<TransactionOperation> {
-    const operation: TransactionOperation = await this.contract.methods
-      .update_operators(updateOperatorsParams)
-      .send();
-
-    await confirmOperation(this.tezos, operation.hash);
-
-    return operation;
+  sendBatch(contents: BatchContentsEntry[]) {
+    return sendBatch(this.tezos, contents);
   }
 
-  async setMinters(minters: Minter[]): Promise<TransactionOperation> {
-    const operation: TransactionOperation = await this.contract.methods
-      .set_minters(minters)
-      .send();
-
-    await confirmOperation(this.tezos, operation.hash);
-
-    return operation;
+  sendSingle(method: ContractMethod<ContractProvider>) {
+    return sendSingle(this.tezos, method);
   }
 
-  async mintGovToken(
-    mintGovTokenParams: MintGovTokenParams[]
-  ): Promise<TransactionOperation> {
-    const operation: TransactionOperation = await this.contract.methods
-      .mint_gov_token(mintGovTokenParams)
-      .send();
+  transfer(params: TransferParam[]) {
+    return this.contract.methods.transfer(params);
+  }
 
-    await confirmOperation(this.tezos, operation.hash);
+  updateOperators(updateOperatorsParams: UpdateOperatorParam[]) {
+    return this.contract.methods.update_operators(updateOperatorsParams);
+  }
 
-    return operation;
+  setMinters(minters: Minter[]) {
+    return this.contract.methods.set_minters(minters);
+  }
+
+  mintGovToken(mintGovTokenParams: MintGovTokenParams[]) {
+    return this.contract.methods.mint_gov_token(mintGovTokenParams);
   }
 }

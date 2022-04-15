@@ -25,7 +25,7 @@ export const fa2Storage: FA2Storage = {
       }),
       allowances: [],
     },
-  }),
+  }) as FA2Storage['account_info'],
   token_info: MichelsonMap.fromLiteral({}),
   metadata: MichelsonMap.fromLiteral({}),
   token_metadata: MichelsonMap.fromLiteral({}),

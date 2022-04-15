@@ -1,41 +1,73 @@
-import { ContractMethod, MichelsonMap, Wallet } from '@taquito/taquito';
+import { TransactionOperation } from '@taquito/taquito';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 
-import { migrate } from '../scripts/helpers';
 import { initTezos } from '../utils/helpers';
 import { Tezos, signerAlice } from './utils/cli';
-import { AssetDescriptor, Coinflip, TEZ_ASSET_DESCRIPTOR } from './coinflip';
-import initialStorage from './storage/coinflip';
+import {
+  AssetDescriptor,
+  Coinflip,
+  CoinflipStorage,
+  TEZ_ASSET_DESCRIPTOR
+} from './coinflip';
+import defaultStorage from './storage/coinflip';
 import { FA2 } from './helpers/FA2';
 import { fa2Storage } from './storage/fa2';
-import { entrypointErrorTestcase, notAdminTestcase } from './helpers';
+import {
+  assertNumberValuesEquality,
+  BatchContentsEntry,
+  BatchWalletOperation,
+  entrypointErrorTestcase,
+  getTotalFee,
+  makeStorage,
+  notAdminTestcase
+} from './helpers';
+import { alice } from '../scripts/sandbox/accounts';
 
 interface AccountContractsProxies {
   emptyCoinflip: Coinflip;
   fa2: FA2;
   allAssetsAddedCoinflip: Coinflip;
+  allAssetsWithBankCoinflip: Coinflip;
 }
 
 type CoinflipType = Exclude<keyof AccountContractsProxies, 'fa2'>;
 
+// Some contract constants
 const PRECISION = new BigNumber('1e18');
 const PERCENT_PRECISION = new BigNumber(1e16);
 
+// Tests configuration values
 const defaultPayout = PRECISION.times(1.5);
 const defaultNewPayout = PRECISION.times(1.1);
 const defaultMaxBetPercentage = PERCENT_PRECISION.times(50);
 const defaultNewMaxBetPercentage = PERCENT_PRECISION.times(75);
-const defaultNetworkFee = 100;
+const defaultNetworkFee = defaultStorage.network_fee;
+const defaultAddBankAmount = 700;
+const withdrawalTestNetworkBank = 2000;
+const withdrawalTestTezBank = 5000;
+const withdrawalTestFa2TokenBank = 1000;
+
 const nonExistentFA2Descriptor = {
   fA2: {
     address: 'KT1HrQWkSFe7ugihjoMWwQ7p8ja9e18LdUFn',
     id: new BigNumber(0)
   }
 };
-const tezAssetId = 0;
-const defaultFA2AssetId = 1;
-const defaultUnknownAssetId = 2;
+const defaultFA2TokenId = 0;
+const tezAssetId = '0';
+const defaultFA2AssetId = '1';
+const defaultUnknownAssetId = '2';
+
+const makeAssetEntry = (
+  assetDescriptor: AssetDescriptor,
+  bank: BigNumber.Value = new BigNumber(0)
+) => ({
+  descriptor: assetDescriptor,
+  payout_quotient: defaultPayout,
+  bank: new BigNumber(bank),
+  max_bet_percentage: defaultMaxBetPercentage
+});
 
 describe('Coinflip admin entrypoints test', function () {
   const accountsContractsProxies: Record<string, AccountContractsProxies> = {};
@@ -43,7 +75,7 @@ describe('Coinflip admin entrypoints test', function () {
 
   async function adminErrorTestcase(
     coinflipType: CoinflipType,
-    methodFn: (coinflip: Coinflip) => ContractMethod<Wallet>,
+    methodFn: (coinflip: Coinflip) => BatchContentsEntry,
     expectedError: string
   ) {
     const coinflip = accountsContractsProxies.alice[coinflipType];
@@ -51,73 +83,133 @@ describe('Coinflip admin entrypoints test', function () {
     await entrypointErrorTestcase(methodFn(coinflip), expectedError);
   }
 
+  async function aliceTestcaseWithBalancesDiff(
+    coinflipType: CoinflipType,
+    balancesDiffs: {
+      noFeesAliceTez: BigNumber.Value,
+      aliceFA2: BigNumber.Value,
+      contractTez: BigNumber.Value,
+      contractFA2: BigNumber.Value,
+    },
+    operation: (coinflip: Coinflip, fa2: FA2) => Promise<
+      BatchWalletOperation | TransactionOperation
+    >,
+    otherAssertions: (
+      prevStorage: CoinflipStorage,
+      currentStorage: CoinflipStorage
+    ) => void | Promise<void>
+  ) {
+    const { [coinflipType]: coinflip, fa2 } = accountsContractsProxies.alice;
+    const { contractAddress, storage: prevStorage } = coinflip;
+    await fa2.updateStorage({ account_info: [alice.pkh, contractAddress] });
+    const oldBalances = {
+      aliceTez: await Tezos.tz.getBalance(alice.pkh),
+      aliceFA2: fa2.getTokenBalance(alice.pkh, String(defaultFA2TokenId)),
+      contractTez: await Tezos.tz.getBalance(contractAddress),
+      contractFA2: fa2.getTokenBalance(contractAddress, String(defaultFA2TokenId))
+    };
+    const totalFee = await getTotalFee(await operation(coinflip, fa2));
+    console.log((await Tezos.rpc.getBlockHeader()).level);
+    await coinflip.updateStorage({
+      id_to_asset: [tezAssetId, defaultFA2AssetId]
+    });
+    await fa2.updateStorage({ account_info: [alice.pkh, contractAddress] });
+    const newBalances = {
+      aliceTez: await Tezos.tz.getBalance(alice.pkh),
+      aliceFA2: fa2.getTokenBalance(alice.pkh, String(defaultFA2TokenId)),
+      contractTez: await Tezos.tz.getBalance(contractAddress),
+      contractFA2: fa2.getTokenBalance(contractAddress, String(defaultFA2TokenId))
+    };
+    assertNumberValuesEquality(
+      newBalances.aliceFA2.minus(oldBalances.aliceFA2),
+      balancesDiffs.aliceFA2,
+      "Balance of FA2 token for Alice doesn't match"
+    );
+    assertNumberValuesEquality(
+      newBalances.aliceTez.minus(oldBalances.aliceTez).plus(totalFee),
+      balancesDiffs.noFeesAliceTez,
+      "TEZ balance for Alice doesn't match"
+    );
+    assertNumberValuesEquality(
+      newBalances.contractFA2.minus(oldBalances.contractFA2),
+      balancesDiffs.contractFA2,
+      "Balance of FA2 token for contract doesn't match"
+    );
+    assertNumberValuesEquality(
+      newBalances.contractTez.minus(oldBalances.contractTez),
+      balancesDiffs.contractTez,
+      "TEZ balance for contract doesn't match"
+    );
+    const { storage: currentStorage } = coinflip;
+    await otherAssertions(prevStorage, currentStorage);
+  }
+
   beforeAll(async () => {
     try {
       Tezos.setSignerProvider(signerAlice);
-      const emptyCoinflipContractAddress: string = await migrate(
+      console.log('Originating coinflip contract without assets...');
+      const aliceEmptyCoinflip = await Coinflip.originateWithTransfers(
         Tezos,
-        'coinflip',
-        initialStorage,
-        'sandbox'
+        defaultStorage
       );
-      const aliceEmptyCoinflip = await Coinflip.init(
-        'alice',
-        emptyCoinflipContractAddress
-      );
+      console.log('Originating FA2 token contract...');
       const aliceFA2 = await FA2.originate(Tezos, fa2Storage);
       testFA2TokenDescriptor = {
         fA2: { address: aliceFA2.contract.address, id: new BigNumber(0) }
       };
-      const fa2TokenBytesKey = aliceEmptyCoinflip.getAssetKey(
-        testFA2TokenDescriptor
-      );
-      const tezBytesKey = aliceEmptyCoinflip.getAssetKey(TEZ_ASSET_DESCRIPTOR);
-      const allAssetsAddedCoinflipContractAddress: string = await migrate(
+      console.log('Originating coinflip contract with assets with empty banks...');
+      const aliceAllAssetsAddedCoinflip = await Coinflip.originateWithTransfers(
         Tezos,
-        'coinflip',
-        {
-          ...initialStorage,
-          assets_counter: new BigNumber(2),
-          asset_to_id: MichelsonMap.fromLiteral({
-            [tezBytesKey]: new BigNumber(0),
-            [fa2TokenBytesKey]: new BigNumber(1)
-          }),
-          id_to_asset: MichelsonMap.fromLiteral({
-            '0': {
-              descriptor: TEZ_ASSET_DESCRIPTOR,
-              payout_quotient: defaultPayout,
-              bank: new BigNumber(0),
-              max_bet_percentage: defaultMaxBetPercentage
-            },
-            '1': {
-              descriptor: testFA2TokenDescriptor,
-              payout_quotient: defaultPayout,
-              bank: new BigNumber(0),
-              max_bet_percentage: defaultMaxBetPercentage
-            }
-          })
-        },
-        'sandbox'
+        makeStorage(
+          [
+            makeAssetEntry(TEZ_ASSET_DESCRIPTOR),
+            makeAssetEntry(testFA2TokenDescriptor)
+          ]
+        )
+      );
+      console.log(
+        'Originating coinflip contract with assets with non-empty banks and transfering assets to it...'
+      );
+      const aliceAllAssetsWithBankCoinflip = await Coinflip.originateWithTransfers(
+        Tezos,
+        makeStorage(
+          [
+            makeAssetEntry(TEZ_ASSET_DESCRIPTOR, withdrawalTestTezBank),
+            makeAssetEntry(testFA2TokenDescriptor, withdrawalTestFa2TokenBank)
+          ],
+          withdrawalTestNetworkBank
+        )
       );
 
+      console.log('Initializing test entities...');
+      accountsContractsProxies.alice = {
+        emptyCoinflip: aliceEmptyCoinflip,
+        fa2: aliceFA2,
+        allAssetsAddedCoinflip: aliceAllAssetsAddedCoinflip,
+        allAssetsWithBankCoinflip: aliceAllAssetsWithBankCoinflip
+      };
       await Promise.all(
-        ['alice', 'bob', 'carol'].map(async alias => {
-          const [emptyCoinflip, fa2, allAssetsAddedCoinflip] = await Promise.all([
-            alias === 'alice'
-              ? aliceEmptyCoinflip
-              : Coinflip.init(alias, emptyCoinflipContractAddress),
-            alias === 'alice'
-              ? aliceFA2
-              : FA2.init(aliceFA2.contract.address, await initTezos(alias)),
-            Coinflip.init(alias, allAssetsAddedCoinflipContractAddress)
+        ['bob', 'carol'].map(async alias => {
+          const [
+            emptyCoinflip,
+            fa2,
+            allAssetsAddedCoinflip,
+            allAssetsWithBankCoinflip
+          ] = await Promise.all([
+            Coinflip.init(alias, aliceEmptyCoinflip.contractAddress),
+            FA2.init(aliceFA2.contract.address, await initTezos(alias)),
+            Coinflip.init(alias, aliceAllAssetsAddedCoinflip.contractAddress),
+            Coinflip.init(alias, aliceAllAssetsWithBankCoinflip.contractAddress)
           ]);
           accountsContractsProxies[alias] = {
             emptyCoinflip,
             fa2,
-            allAssetsAddedCoinflip
+            allAssetsAddedCoinflip,
+            allAssetsWithBankCoinflip
           };
         })
       );
+      console.log('General preparation to admin entrypoints tests finished');
     } catch (e) {
       console.error(e);
     }
@@ -218,11 +310,14 @@ describe('Coinflip admin entrypoints test', function () {
         const tezAsset = allAssetsAddedCoinflip.getAssetByDescriptor(
           TEZ_ASSET_DESCRIPTOR
         );
-        assert.deepEqual(tezAsset.payout_quotient, newTezPayoutQuotient);
+        assertNumberValuesEquality(
+          tezAsset.payout_quotient,
+          newTezPayoutQuotient
+        );
         const testFA2Asset = allAssetsAddedCoinflip.getAssetByDescriptor(
           testFA2TokenDescriptor
         );
-        assert.deepEqual(
+        assertNumberValuesEquality(
           testFA2Asset.payout_quotient,
           newFA2TokenPayoutQuotient
         );
@@ -333,14 +428,14 @@ describe('Coinflip admin entrypoints test', function () {
         const tezAsset = allAssetsAddedCoinflip.getAssetByDescriptor(
           TEZ_ASSET_DESCRIPTOR
         );
-        assert.deepEqual(
-          tezAsset.max_bet_percentage.toFixed(),
+        assertNumberValuesEquality(
+          tezAsset.max_bet_percentage,
           newTezMaxBetPercentage
         );
         const testFA2Asset = allAssetsAddedCoinflip.getAssetByDescriptor(
           testFA2TokenDescriptor
         );
-        assert.deepEqual(
+        assertNumberValuesEquality(
           testFA2Asset.max_bet_percentage,
           newFA2TokenMaxBetPercentage
         );
@@ -368,7 +463,7 @@ describe('Coinflip admin entrypoints test', function () {
       'Should throw error if server account tries to call the entrypoint',
       async () => notAdminTestcase(
         accountsContractsProxies.bob.allAssetsAddedCoinflip.setNetworkFee(
-          defaultNetworkFee + 1
+          defaultNetworkFee
         )
       )
     );
@@ -377,7 +472,7 @@ describe('Coinflip admin entrypoints test', function () {
       'Should throw error if a non-server and non-admin account tries to call the entrypoint',
       async () => notAdminTestcase(
         accountsContractsProxies.carol.allAssetsAddedCoinflip.setNetworkFee(
-          defaultNetworkFee + 1
+          defaultNetworkFee
         )
       )
     );
@@ -392,8 +487,8 @@ describe('Coinflip admin entrypoints test', function () {
         );
         await allAssetsAddedCoinflip.updateStorage();
 
-        assert.deepEqual(
-          allAssetsAddedCoinflip.storage.network_fee.toNumber(),
+        assertNumberValuesEquality(
+          allAssetsAddedCoinflip.storage.network_fee,
           0
         );
 
@@ -402,8 +497,8 @@ describe('Coinflip admin entrypoints test', function () {
         );
         await allAssetsAddedCoinflip.updateStorage();
 
-        assert.deepEqual(
-          allAssetsAddedCoinflip.storage.network_fee.toNumber(),
+        assertNumberValuesEquality(
+          allAssetsAddedCoinflip.storage.network_fee,
           defaultNetworkFee
         );
       }
@@ -480,7 +575,7 @@ describe('Coinflip admin entrypoints test', function () {
       describe('Testing payout quotient validation', () => {
         // Payout quotients are specified in titles without precision
         it(
-          "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient equal to 1",
+          "Should throw 'Coinflip/payout-too-low' error for payout quotient equal to 1",
           async () => adminErrorTestcase(
             'emptyCoinflip',
             coinflip => coinflip.addAsset(
@@ -493,7 +588,7 @@ describe('Coinflip admin entrypoints test', function () {
         );
 
         it(
-          "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient less than 1",
+          "Should throw 'Coinflip/payout-too-low' error for payout quotient less than 1",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -506,7 +601,7 @@ describe('Coinflip admin entrypoints test', function () {
         );
 
         it(
-          "Should throw 'Coinflip/payout-too-high' error on attempt to set payout quotient greater than 2",
+          "Should throw 'Coinflip/payout-too-high' error for payout quotient greater than 2",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -521,7 +616,7 @@ describe('Coinflip admin entrypoints test', function () {
 
       describe('Testing asset validation', () => {
         it(
-          "Should throw 'Coinflip/asset-exists' error on attempt to add already added FA2 asset",
+          "Should throw 'Coinflip/asset-exists' error for already added FA2 asset",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -534,7 +629,7 @@ describe('Coinflip admin entrypoints test', function () {
         );
 
         it(
-          "Should throw 'Coinflip/asset-exists' error on attempt to add already added TEZ asset",
+          "Should throw 'Coinflip/asset-exists' error for already added TEZ asset",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -547,7 +642,7 @@ describe('Coinflip admin entrypoints test', function () {
         );
 
         it(
-          "Should throw 'Coinflip/invalid-asset' error on attempt to add non-existent asset",
+          "Should throw 'Coinflip/invalid-asset' error for non-existent asset",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -573,7 +668,7 @@ describe('Coinflip admin entrypoints test', function () {
         await emptyCoinflip.updateAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
 
         const addedAsset = emptyCoinflip.getAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
-        assert.deepEqual(
+        assertNumberValuesEquality(
           emptyCoinflip.storage.assets_counter,
           prevAssetsCounter.plus(1)
         );
@@ -599,7 +694,7 @@ describe('Coinflip admin entrypoints test', function () {
         const addedAsset = emptyCoinflip.getAssetByDescriptor(
           testFA2TokenDescriptor
         );
-        assert.deepEqual(
+        assertNumberValuesEquality(
           emptyCoinflip.storage.assets_counter,
           prevAssetsCounter.plus(1)
         );
@@ -613,6 +708,159 @@ describe('Coinflip admin entrypoints test', function () {
           }
         );
       }
+    );
+
+    afterAll(async () => {
+      const aliceEmptyCoinflip = await Coinflip.originateWithTransfers(
+        Tezos,
+        defaultStorage
+      );
+      accountsContractsProxies.alice.emptyCoinflip = aliceEmptyCoinflip;
+      await Promise.all(
+        ['bob', 'carol'].map(
+          async alias => {
+            accountsContractsProxies[alias].emptyCoinflip = await Coinflip.init(
+              alias,
+              aliceEmptyCoinflip.contractAddress
+            );
+          }
+        )
+      )
+    });
+  });
+
+  describe('Testing entrypoint: Add_asset_bank', () => {
+    describe('Testing permissions control', () => {
+      it(
+        'Should throw error if server account tries to increase bank',
+        async () => notAdminTestcase(
+          accountsContractsProxies.bob.allAssetsWithBankCoinflip.addAssetBank(
+            tezAssetId,
+            defaultAddBankAmount
+          )
+        )
+      );
+  
+      it(
+        'Should throw error if a non-server and non-admin account tries to increase bank',
+        async () => notAdminTestcase(
+          accountsContractsProxies.carol.allAssetsWithBankCoinflip.addAssetBank(
+            tezAssetId,
+            defaultAddBankAmount
+          )
+        )
+      );
+    });
+
+    describe('Testing parameters validation', () => {
+      it(
+        "Should throw 'Coinflip/zero-amount' error when FA2 token amount is zero",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.addAssetBank(defaultFA2AssetId, 0),
+          'Coinflip/zero-amount'
+        )
+      );
+
+      it(
+        "Should throw 'Coinflip/zero-amount' error when TEZ amount is zero",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.addAssetBank(tezAssetId, 0, 0),
+          'Coinflip/zero-amount'
+        )
+      );
+
+      it(
+        "Should throw 'Coinflip/unknown-asset' for unknown asset",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.addAssetBank(
+            defaultUnknownAssetId,
+            defaultAddBankAmount
+          ),
+          'Coinflip/unknown-asset'
+        )
+      );
+
+      it(
+        "Should throw 'Coinflip/invalid-amount' exception if TEZ amount in \
+send parameters isn't equal to amount from entrypoint parameters",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.addAssetBank(
+            tezAssetId,
+            defaultAddBankAmount,
+            defaultAddBankAmount - 1
+          ),
+          'Coinflip/invalid-amount'
+        )
+      );
+    });
+
+    it(
+      'Should increase TEZ bank by specified amount',
+      async () => aliceTestcaseWithBalancesDiff(
+        'allAssetsWithBankCoinflip',
+        {
+          noFeesAliceTez: -defaultAddBankAmount,
+          aliceFA2: 0,
+          contractTez: defaultAddBankAmount,
+          contractFA2: 0
+        },
+        async (coinflip) => coinflip.sendSingle(
+          coinflip.addAssetBank(
+            tezAssetId,
+            defaultAddBankAmount,
+            defaultAddBankAmount
+          )
+        ),
+        (prevStorage, currentStorage) => {
+          const { bank: prevBankFromStorage } = prevStorage.id_to_asset
+            .get(tezAssetId);
+          const { bank: newBankFromStorage } = currentStorage.id_to_asset
+            .get(tezAssetId);
+          assertNumberValuesEquality(
+            newBankFromStorage.minus(prevBankFromStorage),
+            defaultAddBankAmount
+          );
+        }
+      )
+    );
+
+    it(
+      'Should increase FA2 token bank by specified amount',
+      async () => aliceTestcaseWithBalancesDiff(
+        'allAssetsWithBankCoinflip',
+        {
+          noFeesAliceTez: 0,
+          aliceFA2: -defaultAddBankAmount,
+          contractTez: 0,
+          contractFA2: defaultAddBankAmount
+        },
+        async (coinflip, fa2) => coinflip.sendBatch([
+          fa2.updateOperators([
+            {
+              add_operator: {
+                owner: alice.pkh,
+                operator: coinflip.contractAddress,
+                token_id: defaultFA2TokenId
+              }
+            }
+          ]),
+          coinflip.addAssetBank(defaultFA2AssetId, defaultAddBankAmount)
+        ]),
+        (prevStorage, currentStorage) => {
+          const { bank: prevBankFromStorage } = prevStorage.id_to_asset
+            .get(defaultFA2AssetId);
+          const { bank: newBankFromStorage } = currentStorage.id_to_asset
+            .get(defaultFA2AssetId);
+          assertNumberValuesEquality(
+            newBankFromStorage.minus(prevBankFromStorage),
+            defaultAddBankAmount
+          );
+        }
+      )
     );
   });
 });

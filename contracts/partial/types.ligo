@@ -55,9 +55,14 @@ type one_reveal_t       is [@layout:comb] record [
 
 type reveal_params_t    is list(one_reveal_t)
 
-type bank_params_t      is [@layout:comb] record [
-  asset                   : asset_descriptor_t;
-  amount                  : option(nat);
+type add_bank_params_t  is [@layout:comb] record [
+  amount                  : nat;
+  asset_id                : nat;
+]
+
+type rem_bank_params_t  is [@layout:comb] record [
+  amount                  : nat;
+  asset_id                : nat;
 ]
 
 type set_asset_value_t  is [@layout:comb] record [
@@ -80,6 +85,10 @@ type actions_t          is
 | Set_max_bet             of set_asset_value_t
 | Set_network_fee         of tez
 | Add_asset               of add_asset_t
-| Add_asset_bank          of bank_params_t
-| Remove_asset_bank       of bank_params_t
+| Add_asset_bank          of add_bank_params_t
+| Remove_asset_bank       of rem_bank_params_t
 | Withdraw_network_fee    of nat
+#if TEST
+| Do                      of unit
+#else
+#endif

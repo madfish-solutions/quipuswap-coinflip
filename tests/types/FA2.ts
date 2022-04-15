@@ -1,7 +1,8 @@
 import { MichelsonMap, MichelsonMapKey } from "@taquito/michelson-encoder";
+import BigNumber from 'bignumber.js';
 
 export type UserFA2Info = {
-  balances: MichelsonMap<MichelsonMapKey, unknown>;
+  balances: MichelsonMap<MichelsonMapKey, BigNumber>;
   allowances: string[];
 };
 
@@ -53,7 +54,7 @@ export type BalanceResponse = {
 };
 
 export type FA2Storage = {
-  account_info: MichelsonMap<MichelsonMapKey, unknown>;
+  account_info: MichelsonMap<MichelsonMapKey, UserFA2Info>;
   token_info: MichelsonMap<MichelsonMapKey, unknown>;
   metadata: MichelsonMap<MichelsonMapKey, unknown>;
   token_metadata: MichelsonMap<MichelsonMapKey, unknown>;

@@ -1,7 +1,7 @@
 // An example of code which can be used for debugging of test code using taquito module
 import { confirmOperation } from '../utils/confirmation';
 import { initTezos } from "../utils/helpers";
-import { michelson as contractCode } from "../build/coinflip.json";
+import { michelson as contractCode } from "../build/test_coinflip.json";
 import { alice } from "./sandbox/accounts";
 
 (async () => {

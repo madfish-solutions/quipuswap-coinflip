@@ -1,4 +1,5 @@
 #include "../partial/admin/methods.ligo"
+#include "../partial/constants.ligo"
 #include "../partial/game/methods.ligo"
 #include "../partial/types.ligo"
 
@@ -18,4 +19,8 @@ function main(
     | Add_asset_bank(params)       -> add_asset_bank(params, s)
     | Remove_asset_bank(params)    -> remove_asset_bank(params, s)
     | Withdraw_network_fee(params) -> withdraw_network_fee(params, s)
+#if TEST
+    | _                            -> (no_operations, s)
+#else
+#endif
   ];

@@ -52,8 +52,8 @@ function add_asset(
   var storage           : storage_t)
                         : return_t is
   block {
-    const asset : asset_descriptor_t = params.asset;
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    const asset : asset_descriptor_t = params.asset;
     assert_valid_payout(params.payout_quotient);
     assert_valid_max_bet(params.max_bet_percentage);
     assert_valid_asset(asset, Coinflip.invalid_asset);
@@ -75,13 +75,31 @@ function add_asset(
   } with (no_operations, storage);
 
 function add_asset_bank(
-  const params          : bank_params_t;
-  const storage         : storage_t)
+  const params          : add_bank_params_t;
+  var storage           : storage_t)
                         : return_t is
-  (no_operations, storage);
+  block {
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    var operations : list(operation) := no_operations;
+    var asset : asset_t := unwrap_asset(params.asset_id, storage.id_to_asset);
+    const asset_descriptor : asset_descriptor_t = asset.descriptor;
+    const amt : nat = params.amount;
+    case asset_descriptor of [
+    | FA2(_) -> block {
+      operations := list [
+        transfer_asset(asset_descriptor, Tezos.sender, Tezos.self_address, amt)
+      ];
+    }
+    | Tez(_) -> require(Tezos.amount = amt * 1mutez, Coinflip.invalid_amount)
+    ];
+    require(amt > 0n, Coinflip.zero_amount);
+
+    asset.bank := asset.bank + amt;
+    storage.id_to_asset[params.asset_id] := asset;
+  } with (operations, storage);
 
 function remove_asset_bank(
-  const params          : bank_params_t;
+  const params          : rem_bank_params_t;
   const storage         : storage_t)
                         : return_t is
   (no_operations, storage);

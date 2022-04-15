@@ -1,25 +1,26 @@
-import {
-  MichelsonDataPair,
-  MichelsonData,
-  packDataBytes
-} from '@taquito/michel-codec';
-import { MichelsonV1ExpressionExtended } from '@taquito/rpc';
+import { packDataBytes } from '@taquito/michel-codec';
 import {
   BigMapAbstraction,
   ContractAbstraction,
-  ContractMethod,
   MichelsonMap,
   TezosToolkit,
-  Wallet
+  ContractProvider
 } from '@taquito/taquito';
 import { Schema } from '@taquito/michelson-encoder';
 import { BigNumber } from 'bignumber.js';
 
-import { michelson } from '../build/coinflip.json';
+import { michelson } from '../build/test_coinflip.json';
 import { confirmOperation } from '../utils/confirmation';
 import { initTezos } from '../utils/helpers';
-import { replaceAddressesWithBytes } from './helpers';
-import defaultStorage from './storage/coinflip';
+import {
+  BatchContentsEntry,
+  cloneMichelsonMap,
+  replaceAddressesWithBytes,
+  sendBatch,
+  sendSingle
+} from './helpers';
+import defaultStorage from "./storage/coinflip";
+import { FA2 } from './helpers/FA2';
 
 export type CoinSide = { head: {} } | { tail: {} };
 
@@ -91,13 +92,17 @@ export const TEZ_ASSET_DESCRIPTOR = { tez: {} };
 export class Coinflip {
   constructor(
     private tezos: TezosToolkit,
-    private contract: ContractAbstraction<Wallet>,
+    private contract: ContractAbstraction<ContractProvider>,
     public storage = defaultStorage
   ) {}
 
+  get contractAddress() {
+    return this.contract.address;
+  }
+
   static async init(
     accountOrTezos: string | TezosToolkit,
-    contract: string | ContractAbstraction<Wallet>
+    contract: string | ContractAbstraction<ContractProvider>
   ) {
     const tezos = typeof accountOrTezos === 'string'
       ? await initTezos(accountOrTezos)
@@ -105,21 +110,92 @@ export class Coinflip {
 
     return new Coinflip(
       tezos,
-      typeof contract === 'string' ? await tezos.wallet.at(contract) : contract
+      typeof contract === 'string' ? await tezos.contract.at(contract) : contract
     );
   }
 
-  static async originate(tezos: TezosToolkit, storage = defaultStorage) {
+  static async originateWithTransfers(
+    tezos: TezosToolkit,
+    storage = defaultStorage
+  ) {
     const operation = await tezos.contract.originate(
       { code: michelson, storage: storage }
     );
     await confirmOperation(tezos, operation.hash);
 
-    return new Coinflip(
-      tezos,
-      await tezos.wallet.at(operation.contractAddress),
-      storage
+    const { contractAddress } = operation;
+    let mutezToTransfer = new BigNumber(0);
+    const unfoldedFa2Transfers: Array<
+      { address: string; id: BigNumber; amount: BigNumber }
+    > = [];
+    for (const game of storage.games.values()) {
+      const { asset, bid_size, result_coin_side } = game;
+      if (result_coin_side !== null) {
+        continue;
+      }
+      if ('tez' in asset) {
+        mutezToTransfer = mutezToTransfer.plus(bid_size);
+      } else {
+        unfoldedFa2Transfers.push({ ...asset.fA2, amount: bid_size });
+      }
+    }
+    for (const asset of storage.id_to_asset.values()) {
+      const { descriptor, bank } = asset;
+      if (bank.eq(0)) {
+        continue;
+      }
+      if ('tez' in descriptor) {
+        mutezToTransfer = mutezToTransfer.plus(bank);
+      } else {
+        unfoldedFa2Transfers.push({ ...descriptor.fA2, amount: bank });
+      }
+    }
+    const foldedFa2Transfers = unfoldedFa2Transfers
+      .reduce<Record<string, Record<string, BigNumber>>>(
+        (acc, { address, id, amount }) => {
+          const idKey = id.toFixed();
+          if (!acc[address]) {
+            acc[address] = {};
+          }
+          const oldValue = acc[address][idKey] ?? new BigNumber(0);
+          acc[address][idKey] = oldValue.plus(amount);
+
+          return acc;
+        },
+        {}
+      );
+    const contract = await tezos.contract.at(contractAddress);
+    const setContractBalancesOperationsBatch: BatchContentsEntry[] = [];
+    if (mutezToTransfer.gt(0)) {
+      setContractBalancesOperationsBatch.push({
+        method: contract.methods.do(),
+        sendParams: { mutez: true, amount: mutezToTransfer.toNumber() }
+      });
+    }
+    const accountPkh = await tezos.wallet.pkh();
+    await Promise.all(
+      Object.entries(foldedFa2Transfers).map(
+        async ([tokenAddress, tokenTransfers]) => {
+          const fa2 = await FA2.init(tokenAddress, tezos);
+          setContractBalancesOperationsBatch.push(
+            fa2.transfer([{
+              from_: accountPkh,
+              txs: Object.entries(tokenTransfers).map(([rawId, amount]) => ({
+                to_: contractAddress,
+                token_id: Number(rawId),
+                amount: amount.toNumber()
+              }))
+            }])
+          );
+        }
+      )
     );
+
+    if (setContractBalancesOperationsBatch.length > 0) {
+      await sendBatch(tezos, setContractBalancesOperationsBatch);
+    }
+
+    return new Coinflip(tezos, contract, storage);
   }
 
   async updateStorage(
@@ -131,9 +207,9 @@ export class Coinflip {
       id_to_asset: oldIdToAsset
     } = this.storage;
     const michelsonMaps = {
-      games: oldGames,
-      asset_to_id: oldAssetToId,
-      id_to_asset: oldIdToAsset
+      games: cloneMichelsonMap(oldGames),
+      asset_to_id: cloneMichelsonMap(oldAssetToId),
+      id_to_asset: cloneMichelsonMap(oldIdToAsset)
     };
     const rawStorage = await this.contract.storage<RawCoinflipStorage>();
     await Promise.all(
@@ -157,23 +233,15 @@ export class Coinflip {
     };
   }
 
-  async sendBatch(methods: ContractMethod<Wallet>[]) {
-    const batch = await this.tezos.wallet.batch([]);
-    methods.forEach(method => batch.withTransfer(method.toTransferParams()));
-    const op = await batch.send();
-    await confirmOperation(this.tezos, op.opHash);
-
-    return op;
+  async sendBatch(contents: BatchContentsEntry[]) {
+    return sendBatch(this.tezos, contents);
   }
 
-  async sendSingle(method: ContractMethod<Wallet>) {
-    const op = await method.send();
-    await confirmOperation(this.tezos, op.opHash);
-
-    return op;
+  async sendSingle(payload: BatchContentsEntry) {
+    return sendSingle(this.tezos, payload);
   }
 
-  getAssetKey(asset: AssetDescriptor) {
+  static getAssetKey(asset: AssetDescriptor) {
     const keyToEncode = replaceAddressesWithBytes(
       assetDescriptorSchema.Encode(asset)
     );
@@ -182,7 +250,7 @@ export class Coinflip {
   }
 
   async updateAssetByDescriptor(descriptor: AssetDescriptor) {
-    const assetKey = this.getAssetKey(descriptor);
+    const assetKey = Coinflip.getAssetKey(descriptor);
     await this.updateStorage({ asset_to_id: [assetKey] });
     const assetId = this.storage.asset_to_id.get(assetKey);
 
@@ -192,7 +260,7 @@ export class Coinflip {
   }
 
   getAssetByDescriptor(descriptor: AssetDescriptor): Asset | undefined {
-    const assetKey = this.getAssetKey(descriptor);
+    const assetKey = Coinflip.getAssetKey(descriptor);
     const assetId = this.storage.asset_to_id.get(assetKey);
     
     if (!assetId) {
@@ -242,5 +310,18 @@ export class Coinflip {
 
   setNetworkFee(value: BigNumber.Value) {
     return this.contract.methods.set_network_fee(value);
+  }
+
+  addAssetBank(
+    assetId: BigNumber.Value,
+    amount: BigNumber.Value,
+    tezAmount?: number
+  ) {
+    return {
+      method: this.setAssetValue('add_asset_bank', assetId, amount),
+      sendParams: tezAmount === undefined
+        ? undefined
+        : { mutez: true, amount: tezAmount }
+    };
   }
 }
