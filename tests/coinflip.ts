@@ -270,6 +270,10 @@ export class Coinflip {
     return this.storage.id_to_asset.get(assetId.toFixed());
   }
 
+  getBankAmount(assetId: BigNumber.Value) {
+    return this.storage.id_to_asset.get(new BigNumber(assetId).toFixed()).bank;
+  }
+
   addAsset(
     payoutQuotient: BigNumber.Value,
     maxBetPercentage: BigNumber.Value,
@@ -292,7 +296,7 @@ export class Coinflip {
     );
   }
 
-  private setAssetValue(
+  private setSingleAssetValueMethod(
     methodName: string,
     assetId: BigNumber.Value,
     value: BigNumber.Value
@@ -301,11 +305,11 @@ export class Coinflip {
   }
 
   setPayoutQuotient(assetId: BigNumber.Value, value: BigNumber.Value) {
-    return this.setAssetValue('set_payout_quotient', assetId, value);
+    return this.setSingleAssetValueMethod('set_payout_quotient', assetId, value);
   }
 
   setMaxBet(assetId: BigNumber.Value, value: BigNumber.Value) {
-    return this.setAssetValue('set_max_bet', assetId, value);
+    return this.setSingleAssetValueMethod('set_max_bet', assetId, value);
   }
 
   setNetworkFee(value: BigNumber.Value) {
@@ -318,10 +322,18 @@ export class Coinflip {
     tezAmount?: number
   ) {
     return {
-      method: this.setAssetValue('add_asset_bank', assetId, amount),
+      method: this.setSingleAssetValueMethod('add_asset_bank', assetId, amount),
       sendParams: tezAmount === undefined
         ? undefined
         : { mutez: true, amount: tezAmount }
     };
+  }
+
+  removeAssetBank(assetId: BigNumber.Value, amount: BigNumber.Value) {
+    return this.setSingleAssetValueMethod(
+      'remove_asset_bank',
+      assetId,
+      amount
+    );
   }
 }

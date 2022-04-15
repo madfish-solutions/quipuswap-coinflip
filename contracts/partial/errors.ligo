@@ -16,5 +16,5 @@ module Coinflip is {
   const payout_too_high : string = "Coinflip/payout-too-high";
   const max_bet_too_low : string = "Coinflip/max-bet-too-low";
   const max_bet_exceed  : string = "Coinflip/max-bet-exceed";
-  const amount_required : string = "Coinflip/amount-required";
+  const amount_too_high : string = "Coinflip/amount-too-high";
 }

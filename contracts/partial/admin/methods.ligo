@@ -75,7 +75,7 @@ function add_asset(
   } with (no_operations, storage);
 
 function add_asset_bank(
-  const params          : add_bank_params_t;
+  const params          : bank_params_t;
   var storage           : storage_t)
                         : return_t is
   block {
@@ -99,10 +99,23 @@ function add_asset_bank(
   } with (operations, storage);
 
 function remove_asset_bank(
-  const params          : rem_bank_params_t;
-  const storage         : storage_t)
+  const params          : bank_params_t;
+  var storage           : storage_t)
                         : return_t is
-  (no_operations, storage);
+  block {
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    var asset : asset_t := unwrap_asset(params.asset_id, storage.id_to_asset);
+    const asset_descriptor : asset_descriptor_t = asset.descriptor;
+    const amt : nat = params.amount;
+    const operations = list [
+      transfer_asset(asset_descriptor, Tezos.self_address, Tezos.sender, amt)
+    ];
+    require(amt > 0n, Coinflip.zero_amount);
+    require(amt <= asset.bank, Coinflip.amount_too_high);
+
+    asset.bank := abs(asset.bank - amt);
+    storage.id_to_asset[params.asset_id] := asset;
+  } with (operations, storage);
 
 function withdraw_network_fee(
   const params          : nat;

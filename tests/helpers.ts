@@ -19,7 +19,7 @@ import {
   MichelsonV1Expression,
   MichelsonV1ExpressionExtended
 } from '@taquito/rpc';
-import { deepEqual, rejects } from 'assert';
+import { strictEqual, rejects } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import { confirmOperation } from '../utils/confirmation';
@@ -118,7 +118,7 @@ export const assertNumberValuesEquality = (
   expected: BigNumber.Value,
   message?: string | Error
 ) => {
-  deepEqual(
+  strictEqual(
     new BigNumber(actual).toFixed(),
     new BigNumber(expected).toFixed(),
     message
@@ -187,7 +187,6 @@ export async function getTotalFee(
         'operation_result' in result.metadata &&
         'balance_updates' in result.metadata.operation_result) {
         const { balance_updates } = result.metadata.operation_result;
-        console.log(balance_updates);
         resultFee += balance_updates
           .filter(
             ({ category }) =>

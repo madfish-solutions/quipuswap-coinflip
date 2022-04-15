@@ -218,7 +218,7 @@ describe('Coinflip admin entrypoints test', function () {
   describe('Testing entrypoint: Set_payout_quotient', () => {
     describe('Testing permissions control', () => {
       it(
-        'Should throw error if server account tries to call the entrypoint',
+        'Should fail with error if server account tries to call the entrypoint',
         async () => notAdminTestcase(
           accountsContractsProxies.bob.allAssetsAddedCoinflip.setPayoutQuotient(
             tezAssetId,
@@ -228,7 +228,8 @@ describe('Coinflip admin entrypoints test', function () {
       );
   
       it(
-        'Should throw error if a non-server and non-admin account tries to call the entrypoint',
+        'Should fail with error if a non-server and non-admin account \
+tries to call the entrypoint',
         async () => notAdminTestcase(
           accountsContractsProxies.carol.allAssetsAddedCoinflip.setPayoutQuotient(
             tezAssetId,
@@ -241,7 +242,8 @@ describe('Coinflip admin entrypoints test', function () {
     describe('Testing parameters validation', () => {
       // Payout quotients are specified in titles without precision
       it(
-        "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient equal to 1",
+        "Should fail with 'Coinflip/payout-too-low' error for payout quotient \
+equal to 1",
         async () => adminErrorTestcase(
           'allAssetsAddedCoinflip',
           coinflip => coinflip.setPayoutQuotient(tezAssetId, PRECISION),
@@ -250,7 +252,8 @@ describe('Coinflip admin entrypoints test', function () {
       );
 
       it(
-        "Should throw 'Coinflip/payout-too-low' error on attempt to set payout quotient less than 1",
+        "Should fail with 'Coinflip/payout-too-low' error for payout quotient \
+less than 1",
         async () => adminErrorTestcase(
           'allAssetsAddedCoinflip',
           coinflip => coinflip.setPayoutQuotient(tezAssetId, PRECISION.minus(1)),
@@ -259,7 +262,8 @@ describe('Coinflip admin entrypoints test', function () {
       );
 
       it(
-        "Should throw 'Coinflip/payout-too-high' error on attempt to set payout quotient greater than 2",
+        "Should fail with 'Coinflip/payout-too-high' error for payout quotient \
+greater than 2",
         async () => adminErrorTestcase(
           'allAssetsAddedCoinflip',
           coinflip => coinflip.setPayoutQuotient(
@@ -271,7 +275,7 @@ describe('Coinflip admin entrypoints test', function () {
       );
 
       it(
-        "Should throw 'Coinflip/unknown-asset' error on attempt to set payout quotient for unknown asset",
+        "Should fail with 'Coinflip/unknown-asset' error for unknown asset",
         async () => adminErrorTestcase(
           'allAssetsAddedCoinflip',
           coinflip => coinflip.setPayoutQuotient(
@@ -343,7 +347,7 @@ describe('Coinflip admin entrypoints test', function () {
   describe('Testing entrypoint: Set_max_bet', () => {
     describe('Testing permissions control', () => {
       it(
-        'Should throw error if server account tries to call the entrypoint',
+        'Should fail with error if server account tries to call the entrypoint',
         async () => notAdminTestcase(
           accountsContractsProxies.bob.allAssetsAddedCoinflip.setMaxBet(
             tezAssetId,
@@ -353,7 +357,8 @@ describe('Coinflip admin entrypoints test', function () {
       );
   
       it(
-        'Should throw error if a non-server and non-admin account tries to call the entrypoint',
+        'Should fail with error if a non-server and non-admin account \
+tries to call the entrypoint',
         async () => notAdminTestcase(
           accountsContractsProxies.carol.allAssetsAddedCoinflip.setMaxBet(
             tezAssetId,
@@ -365,7 +370,7 @@ describe('Coinflip admin entrypoints test', function () {
 
     describe('Testing parameters validation', () => {
       it(
-        "Should throw 'Coinflip/unknown-asset' error on attempt to set max bet for unknown asset",
+        "Should fail with 'Coinflip/unknown-asset' error for unknown asset",
         async () => adminErrorTestcase(
           'allAssetsAddedCoinflip',
           coinflip => coinflip.setMaxBet(
@@ -377,7 +382,8 @@ describe('Coinflip admin entrypoints test', function () {
       );
   
       it(
-        "Should throw 'Coinflip/max-bet-too-low' error on attempt to set max bet equal to zero",
+        "Should fail with 'Coinflip/max-bet-too-low' error for max bet \
+equal to zero",
         async () => adminErrorTestcase(
           'allAssetsAddedCoinflip',
           coinflip => coinflip.setMaxBet(tezAssetId, 0),
@@ -386,7 +392,7 @@ describe('Coinflip admin entrypoints test', function () {
       );
   
       it(
-        "Should throw 'Coinflip/max-bet-exceed' error on attempt to set max bet equal to 100%",
+        "Should fail with 'Coinflip/max-bet-exceed' error for max bet equal to 100%",
         async () => adminErrorTestcase(
           'allAssetsAddedCoinflip',
           coinflip => coinflip.setMaxBet(tezAssetId, PRECISION),
@@ -395,7 +401,8 @@ describe('Coinflip admin entrypoints test', function () {
       );
   
       it(
-        "Should throw 'Coinflip/max-bet-exceed' error on attempt to set max bet greater than 100%",
+        "Should fail with 'Coinflip/max-bet-exceed' error for max bet \
+greater than 100%",
         async () => adminErrorTestcase(
           'allAssetsAddedCoinflip',
           coinflip => coinflip.setMaxBet(tezAssetId, PRECISION.plus(1)),
@@ -460,7 +467,7 @@ describe('Coinflip admin entrypoints test', function () {
 
   describe('Testing entrypoint: Set_network_fee', () => {
     it(
-      'Should throw error if server account tries to call the entrypoint',
+      'Should fail with error if server account tries to call the entrypoint',
       async () => notAdminTestcase(
         accountsContractsProxies.bob.allAssetsAddedCoinflip.setNetworkFee(
           defaultNetworkFee
@@ -469,7 +476,8 @@ describe('Coinflip admin entrypoints test', function () {
     );
 
     it(
-      'Should throw error if a non-server and non-admin account tries to call the entrypoint',
+      'Should fail with error if a non-server and non-admin account tries \
+to call the entrypoint',
       async () => notAdminTestcase(
         accountsContractsProxies.carol.allAssetsAddedCoinflip.setNetworkFee(
           defaultNetworkFee
@@ -508,7 +516,7 @@ describe('Coinflip admin entrypoints test', function () {
   describe('Testing entrypoint: Add_asset', () => {
     describe('Testing permissions control', () => {
       it(
-        'Should throw error if server account tries to add asset',
+        'Should fail with error if server account tries to add asset',
         async () => notAdminTestcase(
           accountsContractsProxies.bob.emptyCoinflip.addAsset(
             PRECISION.plus(1),
@@ -519,7 +527,8 @@ describe('Coinflip admin entrypoints test', function () {
       );
   
       it(
-        'Should throw error if a non-server and non-admin account tries to add asset',
+        'Should fail with error if a non-server and non-admin account \
+tries to add asset',
         async () => notAdminTestcase(
           accountsContractsProxies.carol.emptyCoinflip.addAsset(
             PRECISION.plus(1),
@@ -533,7 +542,7 @@ describe('Coinflip admin entrypoints test', function () {
     describe('Testing parameters validation', () => {
       describe('Testing max bet validation', () => {
         it(
-          "Should throw 'Coinflip/max-bet-too-low' error for zero max bet",
+          "Should fail with 'Coinflip/max-bet-too-low' error for zero max bet",
           async () => adminErrorTestcase(
             'emptyCoinflip',
             coinflip => coinflip.addAsset(
@@ -546,7 +555,8 @@ describe('Coinflip admin entrypoints test', function () {
         );
     
         it(
-          "Should throw 'Coinflip/max-bet-exceed' error for max bet equal to 100%",
+          "Should fail with 'Coinflip/max-bet-exceed' error for max bet \
+equal to 100%",
           async () => adminErrorTestcase(
             'emptyCoinflip',
             coinflip => coinflip.addAsset(
@@ -559,7 +569,8 @@ describe('Coinflip admin entrypoints test', function () {
         );
     
         it(
-          "Should throw 'Coinflip/max-bet-exceed' error for max bet greater than 100%",
+          "Should fail with 'Coinflip/max-bet-exceed' error for max bet \
+greater than 100%",
           async () => adminErrorTestcase(
             'emptyCoinflip',
             coinflip => coinflip.addAsset(
@@ -575,7 +586,8 @@ describe('Coinflip admin entrypoints test', function () {
       describe('Testing payout quotient validation', () => {
         // Payout quotients are specified in titles without precision
         it(
-          "Should throw 'Coinflip/payout-too-low' error for payout quotient equal to 1",
+          "Should fail with 'Coinflip/payout-too-low' error for \
+payout quotient equal to 1",
           async () => adminErrorTestcase(
             'emptyCoinflip',
             coinflip => coinflip.addAsset(
@@ -588,7 +600,8 @@ describe('Coinflip admin entrypoints test', function () {
         );
 
         it(
-          "Should throw 'Coinflip/payout-too-low' error for payout quotient less than 1",
+          "Should fail with 'Coinflip/payout-too-low' error for \
+payout quotient less than 1",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -601,7 +614,8 @@ describe('Coinflip admin entrypoints test', function () {
         );
 
         it(
-          "Should throw 'Coinflip/payout-too-high' error for payout quotient greater than 2",
+          "Should fail with 'Coinflip/payout-too-high' error for \
+payout quotient greater than 2",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -616,7 +630,8 @@ describe('Coinflip admin entrypoints test', function () {
 
       describe('Testing asset validation', () => {
         it(
-          "Should throw 'Coinflip/asset-exists' error for already added FA2 asset",
+          "Should fail with 'Coinflip/asset-exists' error for already added \
+FA2 asset",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -629,7 +644,8 @@ describe('Coinflip admin entrypoints test', function () {
         );
 
         it(
-          "Should throw 'Coinflip/asset-exists' error for already added TEZ asset",
+          "Should fail with 'Coinflip/asset-exists' error for already added \
+TEZ asset",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -642,7 +658,7 @@ describe('Coinflip admin entrypoints test', function () {
         );
 
         it(
-          "Should throw 'Coinflip/invalid-asset' error for non-existent asset",
+          "Should fail with 'Coinflip/invalid-asset' error for non-existent asset",
           async () => adminErrorTestcase(
             'allAssetsAddedCoinflip',
             coinflip => coinflip.addAsset(
@@ -667,7 +683,9 @@ describe('Coinflip admin entrypoints test', function () {
         );
         await emptyCoinflip.updateAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
 
-        const addedAsset = emptyCoinflip.getAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
+        const addedAsset = emptyCoinflip.getAssetByDescriptor(
+          TEZ_ASSET_DESCRIPTOR
+        );
         assertNumberValuesEquality(
           emptyCoinflip.storage.assets_counter,
           prevAssetsCounter.plus(1)
@@ -732,7 +750,7 @@ describe('Coinflip admin entrypoints test', function () {
   describe('Testing entrypoint: Add_asset_bank', () => {
     describe('Testing permissions control', () => {
       it(
-        'Should throw error if server account tries to increase bank',
+        'Should fail with error if server account tries to increase bank',
         async () => notAdminTestcase(
           accountsContractsProxies.bob.allAssetsWithBankCoinflip.addAssetBank(
             tezAssetId,
@@ -742,7 +760,8 @@ describe('Coinflip admin entrypoints test', function () {
       );
   
       it(
-        'Should throw error if a non-server and non-admin account tries to increase bank',
+        'Should fail with error if a non-server and non-admin account \
+tries to increase bank',
         async () => notAdminTestcase(
           accountsContractsProxies.carol.allAssetsWithBankCoinflip.addAssetBank(
             tezAssetId,
@@ -754,7 +773,8 @@ describe('Coinflip admin entrypoints test', function () {
 
     describe('Testing parameters validation', () => {
       it(
-        "Should throw 'Coinflip/zero-amount' error when FA2 token amount is zero",
+        "Should fail with 'Coinflip/zero-amount' error when \
+FA2 token amount is zero",
         async () => adminErrorTestcase(
           'allAssetsWithBankCoinflip',
           coinflip => coinflip.addAssetBank(defaultFA2AssetId, 0),
@@ -763,7 +783,7 @@ describe('Coinflip admin entrypoints test', function () {
       );
 
       it(
-        "Should throw 'Coinflip/zero-amount' error when TEZ amount is zero",
+        "Should fail with 'Coinflip/zero-amount' error when TEZ amount is zero",
         async () => adminErrorTestcase(
           'allAssetsWithBankCoinflip',
           coinflip => coinflip.addAssetBank(tezAssetId, 0, 0),
@@ -772,7 +792,7 @@ describe('Coinflip admin entrypoints test', function () {
       );
 
       it(
-        "Should throw 'Coinflip/unknown-asset' for unknown asset",
+        "Should fail with 'Coinflip/unknown-asset' error for unknown asset",
         async () => adminErrorTestcase(
           'allAssetsWithBankCoinflip',
           coinflip => coinflip.addAssetBank(
@@ -784,7 +804,7 @@ describe('Coinflip admin entrypoints test', function () {
       );
 
       it(
-        "Should throw 'Coinflip/invalid-amount' exception if TEZ amount in \
+        "Should fail with 'Coinflip/invalid-amount' exception if TEZ amount in \
 send parameters isn't equal to amount from entrypoint parameters",
         async () => adminErrorTestcase(
           'allAssetsWithBankCoinflip',
@@ -861,6 +881,129 @@ send parameters isn't equal to amount from entrypoint parameters",
           );
         }
       )
+    );
+  });
+
+  describe('Testing entrypoint: Remove_asset_bank', () => {
+    describe('Testing permissions control', () => {
+      it(
+        'Should fail with error if server account tries to increase bank',
+        async () => notAdminTestcase(
+          accountsContractsProxies.bob.allAssetsWithBankCoinflip
+            .removeAssetBank(tezAssetId, defaultAddBankAmount
+          )
+        )
+      );
+  
+      it(
+        'Should fail with error if a non-server and non-admin account \
+tries to increase bank',
+        async () => notAdminTestcase(
+          accountsContractsProxies.carol.allAssetsWithBankCoinflip
+            .removeAssetBank(tezAssetId, defaultAddBankAmount)
+        )
+      );
+    });
+
+    describe('Testing parameters validation', () => {
+      it(
+        "Should fail with 'Coinflip/zero-amount' error for zero amount",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.removeAssetBank(tezAssetId, 0),
+          'Coinflip/zero-amount'
+        )
+      );
+
+      it(
+        "Should fail with 'Coinflip/unknown-asset' error for unknown asset",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.removeAssetBank(
+            defaultUnknownAssetId,
+            defaultAddBankAmount
+          ),
+          'Coinflip/unknown-asset'
+        )
+      );
+
+      it(
+        "Should fail with 'Coinflip/amount-too-high' error for amount \
+greater than in bank",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.removeAssetBank(
+            tezAssetId,
+            coinflip.getBankAmount(tezAssetId).plus(1)
+          ),
+          'Coinflip/amount-too-high'
+        )
+      );
+    });
+
+    it(
+      'Should decrease TEZ bank by the amount less than bank',
+      async () => {
+        const removeBankAmount = accountsContractsProxies
+          .alice
+          .allAssetsWithBankCoinflip
+          .getBankAmount(tezAssetId)
+          .minus(1);
+        await aliceTestcaseWithBalancesDiff(
+          'allAssetsWithBankCoinflip',
+          {
+            noFeesAliceTez: removeBankAmount,
+            aliceFA2: 0,
+            contractTez: removeBankAmount.times(-1),
+            contractFA2: 0
+          },
+          async (coinflip) => coinflip.sendSingle(
+            coinflip.removeAssetBank(tezAssetId, removeBankAmount)
+          ),
+          (prevStorage, currentStorage) => {
+            const { bank: prevBankFromStorage } = prevStorage.id_to_asset
+              .get(tezAssetId);
+            const { bank: newBankFromStorage } = currentStorage.id_to_asset
+              .get(tezAssetId);
+            assertNumberValuesEquality(
+              prevBankFromStorage.minus(newBankFromStorage),
+              removeBankAmount
+            );
+          }
+        )
+      }
+    );
+
+    it(
+      'Should decrease FA2 token bank by amount equal to bank',
+      async () => {
+        const removeBankAmount = accountsContractsProxies
+          .alice
+          .allAssetsWithBankCoinflip
+          .getBankAmount(defaultFA2AssetId);
+        await aliceTestcaseWithBalancesDiff(
+          'allAssetsWithBankCoinflip',
+          {
+            noFeesAliceTez: 0,
+            aliceFA2: removeBankAmount,
+            contractTez: 0,
+            contractFA2: removeBankAmount.times(-1)
+          },
+          async coinflip => coinflip.sendSingle(
+            coinflip.removeAssetBank(defaultFA2AssetId, removeBankAmount)
+          ),
+          (prevStorage, currentStorage) => {
+            const { bank: prevBankFromStorage } = prevStorage.id_to_asset
+              .get(defaultFA2AssetId);
+            const { bank: newBankFromStorage } = currentStorage.id_to_asset
+              .get(defaultFA2AssetId);
+            assertNumberValuesEquality(
+              prevBankFromStorage.minus(newBankFromStorage),
+              removeBankAmount
+            );
+          }
+        );
+      }
     );
   });
 });
