@@ -118,7 +118,20 @@ function remove_asset_bank(
   } with (operations, storage);
 
 function withdraw_network_fee(
-  const params          : nat;
-  const storage         : storage_t)
+  const amt             : tez;
+  var storage           : storage_t)
                         : return_t is
-  (no_operations, storage);
+  block {
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(amt > 0mutez, Coinflip.zero_amount);
+
+    storage.network_bank := unwrap(
+      storage.network_bank - amt,
+      Coinflip.amount_too_high
+    );
+  } with (
+    list [
+      transfer_asset(Tez(unit), Tezos.self_address, Tezos.sender, amt / 1mutez)
+    ],
+    storage
+  );

@@ -124,7 +124,7 @@ export class Coinflip {
     await confirmOperation(tezos, operation.hash);
 
     const { contractAddress } = operation;
-    let mutezToTransfer = new BigNumber(0);
+    let mutezToTransfer = storage.network_bank;
     const unfoldedFa2Transfers: Array<
       { address: string; id: BigNumber; amount: BigNumber }
     > = [];
@@ -335,5 +335,9 @@ export class Coinflip {
       assetId,
       amount
     );
+  }
+
+  withdrawNetworkFee(value: BigNumber.Value) {
+    return this.contract.methods.withdraw_network_fee(value);
   }
 }

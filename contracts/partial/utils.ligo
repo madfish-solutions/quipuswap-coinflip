@@ -8,10 +8,10 @@
                         : unit is 
   assert_with_error(param, error);
 
-[@inline] function unwrap(
-  const param           : option(_a);
+[@inline] function unwrap<a> (
+  const param           : option(a);
   const error           : string)
-                        : _a is
+                        : a is
   case param of [
     | Some(instance) -> instance
     | None -> failwith(error)

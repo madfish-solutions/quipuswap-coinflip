@@ -1006,4 +1006,99 @@ greater than in bank",
       }
     );
   });
+
+  describe('Testing entrypoint: Withdraw_network_fee', () => {
+    describe('Testing permissions control', () => {
+      it(
+        'Should fail with error if server account tries to call the entrypoint',
+        async () => notAdminTestcase(
+          accountsContractsProxies.bob.allAssetsWithBankCoinflip
+            .withdrawNetworkFee(1)
+        )
+      );
+  
+      it(
+        'Should fail with error if a non-server and non-admin account \
+tries to call the entrypoint',
+        async () => notAdminTestcase(
+          accountsContractsProxies.carol.allAssetsWithBankCoinflip
+            .withdrawNetworkFee(1)
+        )
+      );
+    });
+
+    describe('Testing parameters validation', () => {
+      it(
+        "Should fail with 'Coinflip/zero-amount' error for zero amount",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.withdrawNetworkFee(0),
+          'Coinflip/zero-amount'
+        )
+      );
+
+      it(
+        "Should fail with 'Coinflip/amount-too-high' error for amount \
+greater than in bank",
+        async () => adminErrorTestcase(
+          'allAssetsWithBankCoinflip',
+          coinflip => coinflip.removeAssetBank(
+            tezAssetId,
+            coinflip.storage.network_bank.plus(1)
+          ),
+          'Coinflip/amount-too-high'
+        )
+      );
+    });
+
+    it(
+      'Should withdraw the amount that is less than network bank or equal to it',
+      async () => {
+        const { allAssetsWithBankCoinflip } = accountsContractsProxies.alice;
+        const firstWithdrawalAmount = 100;
+        const secondWithdrawalAmount = withdrawalTestNetworkBank - firstWithdrawalAmount;
+
+        await aliceTestcaseWithBalancesDiff(
+          'allAssetsWithBankCoinflip',
+          {
+            noFeesAliceTez: firstWithdrawalAmount,
+            aliceFA2: 0,
+            contractTez: -firstWithdrawalAmount,
+            contractFA2: 0
+          },
+          async (coinflip) => coinflip.sendSingle(
+            coinflip.withdrawNetworkFee(firstWithdrawalAmount)
+          ),
+          (prevStorage, currentStorage) => {
+            const { network_bank: prevBankFromStorage } = prevStorage;
+            const { network_bank: newBankFromStorage } = currentStorage;
+            assertNumberValuesEquality(
+              prevBankFromStorage.minus(newBankFromStorage),
+              firstWithdrawalAmount
+            );
+          }
+        );
+        await aliceTestcaseWithBalancesDiff(
+          'allAssetsWithBankCoinflip',
+          {
+            noFeesAliceTez: secondWithdrawalAmount,
+            aliceFA2: 0,
+            contractTez: -secondWithdrawalAmount,
+            contractFA2: 0
+          },
+          async (coinflip) => coinflip.sendSingle(
+            coinflip.withdrawNetworkFee(secondWithdrawalAmount)
+          ),
+          (prevStorage, currentStorage) => {
+            const { network_bank: prevBankFromStorage } = prevStorage;
+            const { network_bank: newBankFromStorage } = currentStorage;
+            assertNumberValuesEquality(
+              prevBankFromStorage.minus(newBankFromStorage),
+              secondWithdrawalAmount
+            );
+          }
+        );
+      }
+    );
+  });
 });

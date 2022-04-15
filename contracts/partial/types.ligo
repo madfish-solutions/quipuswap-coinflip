@@ -82,7 +82,7 @@ type actions_t          is
 | Add_asset               of add_asset_t
 | Add_asset_bank          of bank_params_t
 | Remove_asset_bank       of bank_params_t
-| Withdraw_network_fee    of nat
+| Withdraw_network_fee    of tez
 #if TEST
 | Do                      of unit
 #else

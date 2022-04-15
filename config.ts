@@ -5,7 +5,7 @@ dotenv.config();
 
 export const config = {
   repoName: "quipuswap-coinflip",
-  ligoVersion: "0.33.0",
+  ligoVersion: "0.39.0",
   preferredLigoFlavor: "pascaligo",
   networks: {
     sandbox: {
