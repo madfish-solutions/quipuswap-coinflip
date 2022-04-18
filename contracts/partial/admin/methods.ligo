@@ -4,15 +4,21 @@
 
 function set_admin(
   const params          : address;
-  const storage         : storage_t)
+  var storage           : storage_t)
                         : return_t is
-  (no_operations, storage);
+  block {
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    storage.admin := params;
+  } with (no_operations, storage);
 
 function set_server(
   const params          : address;
-  const storage         : storage_t)
+  var storage           : storage_t)
                         : return_t is
-  (no_operations, storage);
+  block {
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    storage.server := params;
+  } with (no_operations, storage);
 
 function set_payout_quotient(
   const params          : set_asset_value_t;

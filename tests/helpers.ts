@@ -25,10 +25,14 @@ import BigNumber from 'bignumber.js';
 import { confirmOperation } from '../utils/confirmation';
 import { Asset, Coinflip, CoinflipStorage } from './coinflip';
 import defaultStorage from './storage/coinflip';
+import { CoinflipType } from './account-contracts-proxies';
 
 export type BatchContentsEntry = 
   | ContractMethod<ContractProvider>
-  | { method: ContractMethod<ContractProvider>, sendParams?: Partial<SendParams> };
+  | {
+    method: ContractMethod<ContractProvider>;
+    sendParams?: Partial<SendParams>
+  };
 
 export function replaceAddressesWithBytes(expr: MichelsonV1Expression) {
   if (expr instanceof Array) {
@@ -113,34 +117,6 @@ export async function sendSingle(
   return sendWithConfirmation(tezos, payload);
 }
 
-export const assertNumberValuesEquality = (
-  actual: BigNumber.Value,
-  expected: BigNumber.Value,
-  message?: string | Error
-) => {
-  strictEqual(
-    new BigNumber(actual).toFixed(),
-    new BigNumber(expected).toFixed(),
-    message
-  );
-}
-
-export const entrypointErrorTestcase = async (
-  payload: BatchContentsEntry,
-  expectedError: string,
-) => rejects(
-  async () => 'method' in payload
-    ? payload.method.send(payload.sendParams)
-    : payload.send(),
-  (e: Error) => e.message === expectedError
-);
-
-export const notAdminTestcase = async (payload: BatchContentsEntry) =>
-  entrypointErrorTestcase(payload, 'Coinflip/not-admin');
-
-export const notServerTestcase = async (payload: BatchContentsEntry) =>
-  entrypointErrorTestcase(payload, 'Coinflip/not-server');
-
 export const makeStorage = (
   assets: Asset[] = [],
   networkBank: BigNumber.Value = 0,
@@ -205,4 +181,42 @@ export async function getTotalFee(
     },
     0
   );
+}
+
+export const assertNumberValuesEquality = (
+  actual: BigNumber.Value,
+  expected: BigNumber.Value,
+  message?: string | Error
+) => {
+  strictEqual(
+    new BigNumber(actual).toFixed(),
+    new BigNumber(expected).toFixed(),
+    message
+  );
+}
+
+export const entrypointErrorTestcase = async (
+  payload: BatchContentsEntry,
+  expectedError: string,
+) => rejects(
+  async () => 'method' in payload
+    ? payload.method.send(payload.sendParams)
+    : payload.send(),
+  (e: Error) => e.message === expectedError
+);
+
+export const notAdminTestcase = async (payload: BatchContentsEntry) =>
+  entrypointErrorTestcase(payload, 'Coinflip/not-admin');
+
+export const notServerTestcase = async (payload: BatchContentsEntry) =>
+  entrypointErrorTestcase(payload, 'Coinflip/not-server');
+
+export async function adminErrorTestcase(
+  accountsContractsProxies: Record<string, Coinflip>,
+  methodFn: (coinflip: Coinflip) => BatchContentsEntry,
+  expectedError: string
+) {
+  const coinflip = accountsContractsProxies.alice;
+
+  await entrypointErrorTestcase(methodFn(coinflip), expectedError);
 }
