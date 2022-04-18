@@ -22,10 +22,12 @@ import {
 import defaultStorage from "./storage/coinflip";
 import { FA2 } from './helpers/FA2';
 
-export type CoinSide = { head: {} } | { tail: {} };
+export type CoinSide = { head: Symbol } | { tail: Symbol };
+
+export type Status = { started: Symbol } | { won: Symbol } | { lost: Symbol };
 
 interface TezAssetDescriptor {
-  tez: {};
+  tez: Symbol;
 }
 
 interface FA2TokenDescriptor {
@@ -42,7 +44,7 @@ export interface Game {
   start: string;
   bid_size: BigNumber;
   bet_coin_side: CoinSide;
-  result_coin_side: CoinSide | null;
+  status: Status;
 }
 
 export interface Asset {
@@ -87,7 +89,7 @@ const assetDescriptorSchema = new Schema({
   annots: ['%asset']
 });
 
-export const TEZ_ASSET_DESCRIPTOR = { tez: {} };
+export const TEZ_ASSET_DESCRIPTOR = { tez: Symbol() };
 
 export class Coinflip {
   constructor(
@@ -129,8 +131,8 @@ export class Coinflip {
       { address: string; id: BigNumber; amount: BigNumber }
     > = [];
     for (const game of storage.games.values()) {
-      const { asset, bid_size, result_coin_side } = game;
-      if (result_coin_side !== null) {
+      const { asset, bid_size, status } = game;
+      if (!('started' in status)) {
         continue;
       }
       if ('tez' in asset) {
@@ -319,13 +321,13 @@ export class Coinflip {
   addAssetBank(
     assetId: BigNumber.Value,
     amount: BigNumber.Value,
-    tezAmount?: number
+    mutezAmount?: number
   ) {
     return {
       method: this.setSingleAssetValueMethod('add_asset_bank', assetId, amount),
-      sendParams: tezAmount === undefined
+      sendParams: mutezAmount === undefined
         ? undefined
-        : { mutez: true, amount: tezAmount }
+        : { mutez: true, amount: mutezAmount }
     };
   }
 
@@ -347,5 +349,21 @@ export class Coinflip {
 
   setServer(value: string) {
     return this.contract.methods.set_server(value);
+  }
+
+  bet(
+    assetId: BigNumber.Value,
+    bidSize: BigNumber.Value,
+    coinSide: CoinSide,
+    mutezAmount: number
+  ) {
+    return {
+      method: this.contract.methods.bet(
+        assetId,
+        bidSize,
+        'head' in coinSide ? 'head' : 'tail'
+      ),
+      sendParams: { mutez: true, amount: mutezAmount }
+    };
   }
 }

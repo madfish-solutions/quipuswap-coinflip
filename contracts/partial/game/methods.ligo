@@ -49,6 +49,7 @@ function bet(
       status        = Started;
     ];
     storage.games_counter := storage.games_counter + 1n;
+    storage.network_bank := storage.network_bank + storage.network_fee;
   } with (operations, storage);
 
 function reveal(

@@ -1,14 +1,9 @@
-import { TransactionOperation } from '@taquito/taquito';
-import BigNumber from 'bignumber.js';
-
-import { Tezos } from '../utils/cli';
-import { Coinflip, CoinflipStorage } from '../coinflip';
+import { Coinflip } from '../coinflip';
 import { FA2 } from '../helpers/FA2';
 import {
   adminErrorTestcase,
+  aliceTestcaseWithBalancesDiff,
   assertNumberValuesEquality,
-  BatchWalletOperation,
-  getTotalFee,
   notAdminTestcase
 } from '../helpers';
 import { alice } from '../../scripts/sandbox/accounts';
@@ -27,68 +22,6 @@ export const defaultAddBankAmount = 700;
 export const withdrawalTestNetworkBank = 2000;
 export const withdrawalTestTezBank = 5000;
 export const withdrawalTestFa2TokenBank = 1000;
-
-async function aliceTestcaseWithBalancesDiff(
-  fa2Wrappers: Record<string, FA2>,
-  coinflips: Record<string, Coinflip>,
-  balancesDiffs: {
-    noFeesAliceTez: BigNumber.Value,
-    aliceFA2: BigNumber.Value,
-    contractTez: BigNumber.Value,
-    contractFA2: BigNumber.Value,
-  },
-  operation: (coinflip: Coinflip, fa2: FA2) => Promise<
-    BatchWalletOperation | TransactionOperation
-  >,
-  otherAssertions: (
-    prevStorage: CoinflipStorage,
-    currentStorage: CoinflipStorage
-  ) => void | Promise<void>
-) {
-  const fa2 = fa2Wrappers.alice;
-  const coinflip = coinflips.alice;
-  const { contractAddress, storage: prevStorage } = coinflip;
-  await fa2.updateStorage({ account_info: [alice.pkh, contractAddress] });
-  const oldBalances = {
-    aliceTez: await Tezos.tz.getBalance(alice.pkh),
-    aliceFA2: fa2.getTokenBalance(alice.pkh, String(defaultFA2TokenId)),
-    contractTez: await Tezos.tz.getBalance(contractAddress),
-    contractFA2: fa2.getTokenBalance(contractAddress, String(defaultFA2TokenId))
-  };
-  const totalFee = await getTotalFee(await operation(coinflip, fa2));
-  await coinflip.updateStorage({
-    id_to_asset: [tezAssetId, defaultFA2AssetId]
-  });
-  await fa2.updateStorage({ account_info: [alice.pkh, contractAddress] });
-  const newBalances = {
-    aliceTez: await Tezos.tz.getBalance(alice.pkh),
-    aliceFA2: fa2.getTokenBalance(alice.pkh, String(defaultFA2TokenId)),
-    contractTez: await Tezos.tz.getBalance(contractAddress),
-    contractFA2: fa2.getTokenBalance(contractAddress, String(defaultFA2TokenId))
-  };
-  assertNumberValuesEquality(
-    newBalances.aliceFA2.minus(oldBalances.aliceFA2),
-    balancesDiffs.aliceFA2,
-    "Balance of FA2 token for Alice doesn't match"
-  );
-  assertNumberValuesEquality(
-    newBalances.aliceTez.minus(oldBalances.aliceTez).plus(totalFee),
-    balancesDiffs.noFeesAliceTez,
-    "TEZ balance for Alice doesn't match"
-  );
-  assertNumberValuesEquality(
-    newBalances.contractFA2.minus(oldBalances.contractFA2),
-    balancesDiffs.contractFA2,
-    "Balance of FA2 token for contract doesn't match"
-  );
-  assertNumberValuesEquality(
-    newBalances.contractTez.minus(oldBalances.contractTez),
-    balancesDiffs.contractTez,
-    "TEZ balance for contract doesn't match"
-  );
-  const { storage: currentStorage } = coinflip;
-  await otherAssertions(prevStorage, currentStorage);
-}
 
 describe('Coinflip admin bank entrypoints test', function () {
   let fa2Wrappers: Record<string, FA2> = {};
@@ -184,7 +117,8 @@ send parameters isn't equal to amount from entrypoint parameters",
             defaultAddBankAmount
           )
         ),
-        (prevStorage, currentStorage) => {
+        (prevStorage) => {
+          const { storage: currentStorage } = coinflips.alice;
           const { bank: prevBankFromStorage } = prevStorage.id_to_asset
             .get(tezAssetId);
           const { bank: newBankFromStorage } = currentStorage.id_to_asset
@@ -220,7 +154,8 @@ send parameters isn't equal to amount from entrypoint parameters",
           ]),
           coinflip.addAssetBank(defaultFA2AssetId, defaultAddBankAmount)
         ]),
-        (prevStorage, currentStorage) => {
+        (prevStorage) => {
+          const { storage: currentStorage } = coinflips.alice;
           const { bank: prevBankFromStorage } = prevStorage.id_to_asset
             .get(defaultFA2AssetId);
           const { bank: newBankFromStorage } = currentStorage.id_to_asset
@@ -307,7 +242,8 @@ greater than in bank",
           async (coinflip) => coinflip.sendSingle(
             coinflip.removeAssetBank(tezAssetId, removeBankAmount)
           ),
-          (prevStorage, currentStorage) => {
+          (prevStorage) => {
+            const { storage: currentStorage } = coinflips.alice;
             const { bank: prevBankFromStorage } = prevStorage.id_to_asset
               .get(tezAssetId);
             const { bank: newBankFromStorage } = currentStorage.id_to_asset
@@ -339,7 +275,8 @@ greater than in bank",
           async coinflip => coinflip.sendSingle(
             coinflip.removeAssetBank(defaultFA2AssetId, removeBankAmount)
           ),
-          (prevStorage, currentStorage) => {
+          (prevStorage) => {
+            const { storage: currentStorage } = coinflips.alice;
             const { bank: prevBankFromStorage } = prevStorage.id_to_asset
               .get(defaultFA2AssetId);
             const { bank: newBankFromStorage } = currentStorage.id_to_asset
@@ -410,7 +347,8 @@ greater than in bank",
           async (coinflip) => coinflip.sendSingle(
             coinflip.withdrawNetworkFee(firstWithdrawalAmount)
           ),
-          (prevStorage, currentStorage) => {
+          (prevStorage) => {
+            const { storage: currentStorage } = coinflips.alice;
             const { network_bank: prevBankFromStorage } = prevStorage;
             const { network_bank: newBankFromStorage } = currentStorage;
             assertNumberValuesEquality(
@@ -431,7 +369,8 @@ greater than in bank",
           async (coinflip) => coinflip.sendSingle(
             coinflip.withdrawNetworkFee(secondWithdrawalAmount)
           ),
-          (prevStorage, currentStorage) => {
+          (prevStorage) => {
+            const { storage: currentStorage } = coinflips.alice;
             const { network_bank: prevBankFromStorage } = prevStorage;
             const { network_bank: newBankFromStorage } = currentStorage;
             assertNumberValuesEquality(
