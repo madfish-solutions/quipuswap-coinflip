@@ -1,3 +1,6 @@
+import assert from 'assert';
+
+import { alice, bob, carol } from '../../scripts/sandbox/accounts';
 import { makeEmptyCoinflip } from '../account-contracts-proxies';
 import { Coinflip } from '../coinflip';
 import { defaultNetworkFee } from '../constants';
@@ -43,6 +46,60 @@ to call the entrypoint',
           coinflip.storage.network_fee,
           defaultNetworkFee
         );
+      }
+    );
+  });
+
+  describe('Testing entrypoint: Set_admin', () => {
+    it(
+      'Should fail with error if server account tries to call the entrypoint',
+      async () => notAdminTestcase(coinflips.bob.setAdmin(bob.pkh))
+    );
+
+    it(
+      'Should fail with error if a non-server and non-admin account tries \
+to call the entrypoint',
+      async () => notAdminTestcase(coinflips.carol.setAdmin(carol.pkh))
+    );
+
+    it(
+      "Should set new admin",
+      async () => {
+        const { alice: aliceCoinflip, bob: bobCoinflip } = coinflips;
+        
+        await aliceCoinflip.sendSingle(aliceCoinflip.setAdmin(bob.pkh));
+        await aliceCoinflip.updateStorage();
+
+        assert(aliceCoinflip.storage.admin === bob.pkh);
+
+        await bobCoinflip.sendSingle(bobCoinflip.setAdmin(alice.pkh));
+      }
+    );
+  });
+
+  describe('Testing entrypoint: Set_server', () => {
+    it(
+      'Should fail with error if server account tries to call the entrypoint',
+      async () => notAdminTestcase(coinflips.bob.setServer(alice.pkh))
+    );
+
+    it(
+      'Should fail with error if a non-server and non-admin account tries \
+to call the entrypoint',
+      async () => notAdminTestcase(coinflips.carol.setServer(alice.pkh))
+    );
+
+    it(
+      "Should set new server",
+      async () => {
+        const { alice: aliceCoinflip } = coinflips;
+        
+        await aliceCoinflip.sendSingle(aliceCoinflip.setServer(carol.pkh));
+        await aliceCoinflip.updateStorage();
+
+        assert(aliceCoinflip.storage.server === carol.pkh);
+
+        await aliceCoinflip.sendSingle(aliceCoinflip.setServer(bob.pkh));
       }
     );
   });

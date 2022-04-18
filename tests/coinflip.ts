@@ -340,4 +340,12 @@ export class Coinflip {
   withdrawNetworkFee(value: BigNumber.Value) {
     return this.contract.methods.withdraw_network_fee(value);
   }
+
+  setAdmin(value: string) {
+    return this.contract.methods.set_admin(value);
+  }
+
+  setServer(value: string) {
+    return this.contract.methods.set_server(value);
+  }
 }

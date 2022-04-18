@@ -19,7 +19,6 @@ import {
   tezAssetId
 } from '../constants';
 import {
-  CoinflipType,
   makeAllAssetsWithBankCoinflip,
   makeFA2,
 } from '../account-contracts-proxies';

@@ -1,14 +1,10 @@
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 
-import { Tezos } from '../utils/cli';
 import { AssetDescriptor, Coinflip, TEZ_ASSET_DESCRIPTOR } from '../coinflip';
-import defaultStorage from '../storage/coinflip';
 import {
   adminErrorTestcase,
   assertNumberValuesEquality,
-  BatchContentsEntry,
-  entrypointErrorTestcase,
   notAdminTestcase
 } from '../helpers';
 import {
