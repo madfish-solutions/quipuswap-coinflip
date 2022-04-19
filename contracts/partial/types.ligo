@@ -20,12 +20,17 @@ type asset_record_t     is [@layout:comb] record [
   max_bet_percent_f       : nat;
 ]
 
+type game_status_t      is
+| Started                 of unit
+| Won                     of unit
+| Lost                    of unit
+
 type game_t             is [@layout:comb] record [
   asset                   : asset_t;
   start                   : timestamp;
   bid_size                : nat;
   bet_coin_side           : coin_side_t;
-  result_coin_side        : option(coin_side_t);
+  status                  : game_status_t;
 ]
 
 type storage_t          is [@layout:comb] record [
@@ -43,7 +48,7 @@ type storage_t          is [@layout:comb] record [
 type return_t           is list(operation) * storage_t
 
 type bet_params_t       is [@layout:comb] record [
-  asset                   : asset_t;
+  asset_id                : nat;
   bid_size                : nat;
   coin_side               : coin_side_t;
 ]

@@ -15,9 +15,9 @@ import { makeStorage } from './helpers';
 import {
   defaultPayout,
   defaultMaxBetPercentage,
-  withdrawalTestTezBank,
-  withdrawalTestFa2TokenBank,
-  withdrawalTestNetworkBank,
+  testTezBank,
+  testFa2TokenBank,
+  testNetworkBank,
   defaultFA2TokenId
 } from './constants';
 
@@ -100,13 +100,13 @@ export async function makeAllAssetsWithBankCoinflip(
   return makeCoinflip(
     makeStorage(
       [
-        makeAssetEntry(TEZ_ASSET, withdrawalTestTezBank),
+        makeAssetEntry(TEZ_ASSET, testTezBank),
         makeAssetEntry(
           { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
-          withdrawalTestFa2TokenBank
+          testFa2TokenBank
         )
       ],
-      withdrawalTestNetworkBank
+      testNetworkBank
     )
   );
 }

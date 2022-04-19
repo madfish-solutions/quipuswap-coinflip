@@ -25,6 +25,10 @@ import BigNumber from 'bignumber.js';
 import { confirmOperation } from '../utils/confirmation';
 import { AssetRecord, Coinflip, CoinflipStorage } from './coinflip';
 import defaultStorage from './storage/coinflip';
+import { FA2 } from './helpers/FA2';
+import { alice } from '../scripts/sandbox/accounts';
+import { Tezos } from './utils/cli';
+import { defaultFA2AssetId, defaultFA2TokenId, tezAssetId } from './constants';
 
 export type BatchContentsEntry = 
   | ContractMethod<ContractProvider>
@@ -218,4 +222,65 @@ export async function adminErrorTestcase(
   const coinflip = accountsContractsProxies.alice;
 
   await entrypointErrorTestcase(methodFn(coinflip), expectedError);
+}
+
+export async function aliceTestcaseWithBalancesDiff(
+  fa2Wrappers: Record<string, FA2>,
+  coinflips: Record<string, Coinflip>,
+  balancesDiffs: {
+    noFeesAliceTez: BigNumber.Value,
+    aliceFA2: BigNumber.Value,
+    contractTez: BigNumber.Value,
+    contractFA2: BigNumber.Value,
+  },
+  operation: (coinflip: Coinflip, fa2: FA2) => Promise<
+    BatchWalletOperation | TransactionOperation
+  >,
+  otherAssertions: (prevStorage: CoinflipStorage) => void | Promise<void>
+) {
+  const fa2 = fa2Wrappers.alice;
+  const coinflip = coinflips.alice;
+  const { contractAddress, storage: prevStorage } = coinflip;
+  await coinflip.updateStorage({
+    id_to_asset: [tezAssetId, defaultFA2AssetId]
+  });
+  await fa2.updateStorage({ account_info: [alice.pkh, contractAddress] });
+  const oldBalances = {
+    aliceTez: await Tezos.tz.getBalance(alice.pkh),
+    aliceFA2: fa2.getTokenBalance(alice.pkh, String(defaultFA2TokenId)),
+    contractTez: await Tezos.tz.getBalance(contractAddress),
+    contractFA2: fa2.getTokenBalance(contractAddress, String(defaultFA2TokenId))
+  };
+  const totalFee = await getTotalFee(await operation(coinflip, fa2));
+  await coinflip.updateStorage({
+    id_to_asset: [tezAssetId, defaultFA2AssetId]
+  });
+  await fa2.updateStorage({ account_info: [alice.pkh, contractAddress] });
+  const newBalances = {
+    aliceTez: await Tezos.tz.getBalance(alice.pkh),
+    aliceFA2: fa2.getTokenBalance(alice.pkh, String(defaultFA2TokenId)),
+    contractTez: await Tezos.tz.getBalance(contractAddress),
+    contractFA2: fa2.getTokenBalance(contractAddress, String(defaultFA2TokenId))
+  };
+  assertNumberValuesEquality(
+    newBalances.aliceFA2.minus(oldBalances.aliceFA2),
+    balancesDiffs.aliceFA2,
+    "Balance of FA2 token for Alice doesn't match"
+  );
+  assertNumberValuesEquality(
+    newBalances.aliceTez.minus(oldBalances.aliceTez).plus(totalFee),
+    balancesDiffs.noFeesAliceTez,
+    "TEZ balance for Alice doesn't match"
+  );
+  assertNumberValuesEquality(
+    newBalances.contractFA2.minus(oldBalances.contractFA2),
+    balancesDiffs.contractFA2,
+    "Balance of FA2 token for contract doesn't match"
+  );
+  assertNumberValuesEquality(
+    newBalances.contractTez.minus(oldBalances.contractTez),
+    balancesDiffs.contractTez,
+    "TEZ balance for contract doesn't match"
+  );
+  await otherAssertions(prevStorage);
 }
