@@ -23,10 +23,10 @@
                         : nat is
   unwrap(is_nat(value), err);
 
-[@inline] function unwrap_asset(
+[@inline] function unwrap_asset_record(
   const asset_id          : nat;
-  const id_to_asset       : big_map(nat, asset_t))
-                          : asset_t is
+  const id_to_asset       : big_map(nat, asset_record_t))
+                          : asset_record_t is
   unwrap(id_to_asset[asset_id], Coinflip.unknown_asset);
 
 [@inline] function assert_valid_payout(
@@ -47,22 +47,22 @@
 
 function get_opt_fa2_transfer_entrypoint(
   const token           : address)
-                        : option(contract(fa2_transfer_type)) is
+                        : option(contract(fa2_transfer_t)) is
   Tezos.get_entrypoint_opt("%transfer", token);
 
 function get_fa2_token_transfer_entrypoint(
   const token           : address)
-                        : contract(fa2_transfer_type) is
+                        : contract(fa2_transfer_t) is
   case (get_opt_fa2_transfer_entrypoint(token)) of [
   | Some(contr) -> contr
   | None        -> (
     failwith("QSystem/fa2-transfer-entrypoint-404")
-                        : contract(fa2_transfer_type)
+                        : contract(fa2_transfer_t)
   )
   ]
 
 [@inline] function assert_valid_asset(
-  const asset           : asset_descriptor_t;
+  const asset           : asset_t;
   const error           : string)
                         : unit is
   block {
@@ -80,7 +80,7 @@ function wrap_fa2_transfer_trx(
   const to_             : address;
   const amt             : nat;
   const id              : nat)
-                        : fa2_transfer_type is
+                        : fa2_transfer_t is
   Fa2_transfer_type(list [
     record [
       from_ = from_;
@@ -108,7 +108,7 @@ function transfer_fa2(
   );
 
 function transfer_asset(
-  const asset           : asset_descriptor_t;
+  const asset           : asset_t;
   const from_           : address;
   const to_             : address;
   const amt             : nat)

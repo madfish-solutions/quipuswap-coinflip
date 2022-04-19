@@ -3,10 +3,10 @@ import BigNumber from 'bignumber.js';
 import { initTezos } from '../utils/helpers';
 import { Tezos, signerAlice } from './utils/cli';
 import {
-  AssetDescriptor,
+  Asset,
   Coinflip,
   CoinflipStorage,
-  TEZ_ASSET_DESCRIPTOR
+  TEZ_ASSET
 } from './coinflip';
 import defaultStorage from './storage/coinflip';
 import { FA2 } from './helpers/FA2';
@@ -30,14 +30,11 @@ interface AccountContractsProxies {
 
 export type CoinflipType = Exclude<keyof AccountContractsProxies, 'fa2'>;
 
-const makeAssetEntry = (
-  assetDescriptor: AssetDescriptor,
-  bank: BigNumber.Value = new BigNumber(0)
-) => ({
-  descriptor: assetDescriptor,
+const makeAssetEntry = (asset: Asset, bank: BigNumber.Value = 0) => ({
+  asset,
   payout_quotient: defaultPayout,
   bank: new BigNumber(bank),
-  max_bet_percentage: defaultMaxBetPercentage
+  max_bet_percent: defaultMaxBetPercentage
 });
 
 Tezos.setSignerProvider(signerAlice);
@@ -84,7 +81,7 @@ export async function makeAllAssetsAddedCoinflip(
   return makeCoinflip(
     makeStorage(
       [
-        makeAssetEntry(TEZ_ASSET_DESCRIPTOR),
+        makeAssetEntry(TEZ_ASSET),
         makeAssetEntry({
           fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) }
         })
@@ -103,7 +100,7 @@ export async function makeAllAssetsWithBankCoinflip(
   return makeCoinflip(
     makeStorage(
       [
-        makeAssetEntry(TEZ_ASSET_DESCRIPTOR, withdrawalTestTezBank),
+        makeAssetEntry(TEZ_ASSET, withdrawalTestTezBank),
         makeAssetEntry(
           { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
           withdrawalTestFa2TokenBank
