@@ -211,15 +211,16 @@ amount is greater than bid size + network fee",
           );
           const newGame = games.get(prevGamesCounter.toFixed());
           assert(newGame !== undefined);
-          const { asset, bet_coin_side, status, ...restProps } = newGame;
+          const { bet_coin_side, status, ...restProps } = newGame;
           deepEqual(
             restProps,
             {
+              asset_id: new BigNumber(tezAssetId),
+              gamer: alice.pkh,
               start: expectedStart,
               bid_size: new BigNumber(defaultBetSize)
             }
           );
-          assert('tez' in asset);
           assert('head' in bet_coin_side);
           assert('started' in status);
         }
@@ -295,12 +296,8 @@ amount is greater than bid size + network fee",
           deepEqual(
             restProps,
             {
-              asset: {
-                fa2: {
-                  address: fa2Wrappers.alice.contract.address,
-                  id: new BigNumber(defaultFA2TokenId)
-                }
-              },
+              asset_id: new BigNumber(defaultFA2AssetId),
+              gamer: alice.pkh,
               start: expectedStart,
               bid_size: new BigNumber(defaultBetSize)
             }

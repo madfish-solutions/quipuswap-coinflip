@@ -26,7 +26,8 @@ type game_status_t      is
 | Lost                    of unit
 
 type game_t             is [@layout:comb] record [
-  asset                   : asset_t;
+  asset_id                : nat;
+  gamer                   : address;
   start                   : timestamp;
   bid_size                : nat;
   bet_coin_side           : coin_side_t;
