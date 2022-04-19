@@ -10,9 +10,13 @@ export const PERCENT_PRECISION = new BigNumber(1e16);
 export const defaultPayout = PRECISION.times(1.5);
 export const defaultMaxBetPercentage = PERCENT_PRECISION.times(50);
 export const defaultNetworkFee = defaultStorage.network_fee;
-export const withdrawalTestNetworkBank = 2000;
-export const withdrawalTestTezBank = 5000;
-export const withdrawalTestFa2TokenBank = 1000;
+export const testNetworkBank = 2000;
+export const testTezBank = 5000;
+export const testFa2TokenBank = 1000;
+
+// Reducing amount of code in tests
+export const testMaxFA2Bet = 500;
+export const testMaxTezBet = 2500;
 
 export const nonExistentFA2Descriptor = {
   fA2: {
