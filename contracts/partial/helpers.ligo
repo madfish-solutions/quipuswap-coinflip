@@ -67,7 +67,7 @@ function get_fa2_token_transfer_entrypoint(
                         : unit is
   block {
     case asset of [
-    | FA2(token) -> assert_some_with_error(
+    | Fa2(token) -> assert_some_with_error(
       get_opt_fa2_transfer_entrypoint(token.address),
       error
     )
@@ -81,7 +81,7 @@ function wrap_fa2_transfer_trx(
   const amt             : nat;
   const id              : nat)
                         : fa2_transfer_type is
-  FA2_transfer_type(list [
+  Fa2_transfer_type(list [
     record [
       from_ = from_;
       txs = list [
@@ -122,5 +122,5 @@ function transfer_asset(
         Coinflip.no_such_account
       )
     )
-  | FA2(token) -> transfer_fa2(from_, to_, amt, token.address, token.id)
+  | Fa2(token) -> transfer_fa2(from_, to_, amt, token.address, token.id)
   ]

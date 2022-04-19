@@ -1,6 +1,6 @@
 #include "../constants.ligo"
 #include "../types.ligo"
-#include "../utils.ligo"
+#include "../helpers.ligo"
 
 function set_admin(
   const params          : address;
@@ -91,7 +91,7 @@ function add_asset_bank(
     const asset_descriptor : asset_descriptor_t = asset.descriptor;
     const amt : nat = params.amount;
     case asset_descriptor of [
-    | FA2(_) -> block {
+    | Fa2(_) -> block {
       operations := list [
         transfer_asset(asset_descriptor, Tezos.sender, Tezos.self_address, amt)
       ];

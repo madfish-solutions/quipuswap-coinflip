@@ -36,7 +36,7 @@ describe('Coinflip admin assets entrypoints test', function () {
     const fa2Wrappers = await makeFA2();
     const fa2TokenAddress = fa2Wrappers.alice.contract.address;
     testFA2TokenDescriptor = {
-      fA2: {
+      fa2: {
         address: fa2TokenAddress,
         id: new BigNumber(defaultFA2TokenId)
       }

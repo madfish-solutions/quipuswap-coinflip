@@ -11,7 +11,7 @@ type fa2_token_t        is [@layout:comb] record [
 
 type asset_descriptor_t is
 | Tez                     of unit
-| FA2                     of fa2_token_t
+| Fa2                     of fa2_token_t
 
 type asset_t            is [@layout:comb] record [
   descriptor              : asset_descriptor_t;

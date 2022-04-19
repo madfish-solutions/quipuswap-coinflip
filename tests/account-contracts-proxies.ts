@@ -86,7 +86,7 @@ export async function makeAllAssetsAddedCoinflip(
       [
         makeAssetEntry(TEZ_ASSET_DESCRIPTOR),
         makeAssetEntry({
-          fA2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) }
+          fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) }
         })
       ]
     )
@@ -105,7 +105,7 @@ export async function makeAllAssetsWithBankCoinflip(
       [
         makeAssetEntry(TEZ_ASSET_DESCRIPTOR, withdrawalTestTezBank),
         makeAssetEntry(
-          { fA2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
+          { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
           withdrawalTestFa2TokenBank
         )
       ],

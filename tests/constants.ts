@@ -15,7 +15,7 @@ export const withdrawalTestTezBank = 5000;
 export const withdrawalTestFa2TokenBank = 1000;
 
 export const nonExistentFA2Descriptor = {
-  fA2: {
+  fa2: {
     address: 'KT1HrQWkSFe7ugihjoMWwQ7p8ja9e18LdUFn',
     id: new BigNumber(0)
   }

@@ -29,7 +29,7 @@ interface TezAssetDescriptor {
 }
 
 interface FA2TokenDescriptor {
-  fA2: {
+  fa2: {
     address: string;
     id: BigNumber;
   }
@@ -80,7 +80,7 @@ const assetDescriptorSchema = new Schema({
         { prim: 'address', annots: ['%address'] },
         { prim: 'nat', annots: ['%id'] }
       ],
-      annots: ['%fA2']
+      annots: ['%fa2']
     },
     { prim: 'unit', annots: ['%tez'] }
   ],
@@ -136,7 +136,7 @@ export class Coinflip {
       if ('tez' in asset) {
         mutezToTransfer = mutezToTransfer.plus(bid_size);
       } else {
-        unfoldedFa2Transfers.push({ ...asset.fA2, amount: bid_size });
+        unfoldedFa2Transfers.push({ ...asset.fa2, amount: bid_size });
       }
     }
     for (const asset of storage.id_to_asset.values()) {
@@ -147,7 +147,7 @@ export class Coinflip {
       if ('tez' in descriptor) {
         mutezToTransfer = mutezToTransfer.plus(bank);
       } else {
-        unfoldedFa2Transfers.push({ ...descriptor.fA2, amount: bank });
+        unfoldedFa2Transfers.push({ ...descriptor.fa2, amount: bank });
       }
     }
     const foldedFa2Transfers = unfoldedFa2Transfers
@@ -290,9 +290,9 @@ export class Coinflip {
     return this.contract.methods.add_asset(
       payoutQuotient,
       maxBetPercentage,
-      'fA2',
-      asset.fA2.address,
-      asset.fA2.id
+      'fa2',
+      asset.fa2.address,
+      asset.fa2.id
     );
   }
 

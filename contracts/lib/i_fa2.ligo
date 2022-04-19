@@ -17,4 +17,4 @@ type fa2_send_type      is [@layout:comb] record [
 ]
 
 type fa2_transfer_type  is
-FA2_transfer_type         of list(fa2_send_type) (* Transfers list *)
+Fa2_transfer_type         of list(fa2_send_type) (* Transfers list *)
