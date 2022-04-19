@@ -1,6 +1,4 @@
 module Coinflip is {
-  const not_enough_fee  : string = "Coinflip/not-enough-fee";
-  const bid_too_low     : string = "Coinflip/bid-too-low";
   const bid_too_high    : string = "Coinflip/bid-too-high";
   const not_admin       : string = "Coinflip/not-admin";
   const not_server      : string = "Coinflip/not-server";
@@ -17,4 +15,7 @@ module Coinflip is {
   const max_bet_too_low : string = "Coinflip/max-bet-too-low";
   const max_bet_exceed  : string = "Coinflip/max-bet-exceed";
   const amount_too_high : string = "Coinflip/amount-too-high";
+  const empty_list      : string = "Coinflip/empty-list";
+  const unknown_game    : string = "Coinflip/unknown-game";
+  const cannot_pay      : string = "Coinflip/cannot-pay";
 }

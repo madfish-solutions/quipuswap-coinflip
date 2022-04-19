@@ -24,10 +24,16 @@
   unwrap(is_nat(value), err);
 
 [@inline] function unwrap_asset(
-  const asset_id          : nat;
-  const id_to_asset       : big_map(nat, asset_t))
-                          : asset_t is
+  const asset_id        : nat;
+  const id_to_asset     : big_map(nat, asset_t))
+                        : asset_t is
   unwrap(id_to_asset[asset_id], Coinflip.unknown_asset);
+
+[@inline] function unwrap_game(
+  const game_id         : nat;
+  const games           : big_map(nat, game_t))
+                        : game_t is
+  unwrap(games[game_id], Coinflip.unknown_game);
 
 [@inline] function assert_valid_payout(
   const value             : nat)
@@ -38,8 +44,8 @@
   } with unit;
 
 [@inline] function assert_valid_max_bet(
-  const value             : nat)
-                          : unit is
+  const value           : nat)
+                        : unit is
   block {
     require(value > 0n, Coinflip.max_bet_too_low);
     require(value < precision, Coinflip.max_bet_exceed);
