@@ -61,7 +61,7 @@ type bank_params_t      is [@layout:comb] record [
 ]
 
 type set_asset_value_t  is [@layout:comb] record [
-  value                   : nat;
+  value_f                 : nat;
   asset_id                : nat;
 ]
 

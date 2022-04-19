@@ -26,12 +26,12 @@ function set_payout_quotient(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    assert_valid_payout(params.value);
+    assert_valid_payout(params.value_f);
     var asset_record : asset_record_t := unwrap_asset_record(
       params.asset_id,
       storage.id_to_asset
     );
-    asset_record.payout_quot_f := params.value;
+    asset_record.payout_quot_f := params.value_f;
     storage.id_to_asset[params.asset_id] := asset_record;
   } with (Constants.no_operations, storage);
 
@@ -41,12 +41,12 @@ function set_max_bet(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    assert_valid_max_bet(params.value);
+    assert_valid_max_bet(params.value_f);
     var asset_record : asset_record_t := unwrap_asset_record(
       params.asset_id,
       storage.id_to_asset
     );
-    asset_record.max_bet_percent_f := params.value;
+    asset_record.max_bet_percent_f := params.value_f;
     storage.id_to_asset[params.asset_id] := asset_record;
   } with (Constants.no_operations, storage);
 

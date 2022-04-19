@@ -3,4 +3,5 @@ module Constants is {
   [@inline] const no_operations : list(operation) = nil;
   [@inline] const max_random    : nat = 100n;
   [@inline] const win_threshold : nat = 50n;
+  [@inline] const max_payout_f  : nat = 2n * precision;
 }

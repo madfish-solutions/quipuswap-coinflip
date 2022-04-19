@@ -30,19 +30,19 @@
   unwrap(id_to_asset[asset_id], Coinflip.unknown_asset);
 
 [@inline] function assert_valid_payout(
-  const value             : nat)
+  const value_f           : nat)
                           : unit is
   block {
-    require(value > Constants.precision, Coinflip.payout_too_low);
-    require(value <= 2n * Constants.precision, Coinflip.payout_too_high);
+    require(value_f > Constants.precision, Coinflip.payout_too_low);
+    require(value_f <= Constants.max_payout_f, Coinflip.payout_too_high);
   } with unit;
 
 [@inline] function assert_valid_max_bet(
-  const value             : nat)
+  const value_f           : nat)
                           : unit is
   block {
-    require(value > 0n, Coinflip.max_bet_too_low);
-    require(value < Constants.precision, Coinflip.max_bet_exceed);
+    require(value_f > 0n, Coinflip.max_bet_too_low);
+    require(value_f < Constants.precision, Coinflip.max_bet_exceed);
   } with unit;
 
 function get_opt_fa2_transfer_entrypoint(
