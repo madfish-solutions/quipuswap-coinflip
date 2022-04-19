@@ -15,10 +15,10 @@ function bet(
   const params          : bet_params_t;
   var storage           : storage_t)
                         : return_t is
-   (no_operations, storage);
+   (Constants.no_operations, storage);
 
 function reveal(
   const params          : reveal_params_t;
   const storage         : storage_t)
                         : return_t is
-  (no_operations, storage);
+  (Constants.no_operations, storage);

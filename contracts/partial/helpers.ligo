@@ -13,8 +13,8 @@
   const error           : string)
                         : a is
   case param of [
-    | Some(instance) -> instance
-    | None -> failwith(error)
+  | Some(instance) -> instance
+  | None           -> failwith(error)
   ];
 
 [@inline] function nat_or_error(
@@ -33,8 +33,8 @@
   const value             : nat)
                           : unit is
   block {
-    require(value > precision, Coinflip.payout_too_low);
-    require(value <= 2n * precision, Coinflip.payout_too_high);
+    require(value > Constants.precision, Coinflip.payout_too_low);
+    require(value <= 2n * Constants.precision, Coinflip.payout_too_high);
   } with unit;
 
 [@inline] function assert_valid_max_bet(
@@ -42,7 +42,7 @@
                           : unit is
   block {
     require(value > 0n, Coinflip.max_bet_too_low);
-    require(value < precision, Coinflip.max_bet_exceed);
+    require(value < Constants.precision, Coinflip.max_bet_exceed);
   } with unit;
 
 function get_opt_fa2_transfer_entrypoint(
@@ -114,7 +114,7 @@ function transfer_asset(
   const amt             : nat)
                         : operation is
   case asset of [
-  | Tez(_) -> Tezos.transaction(
+  | Tez(_)     -> Tezos.transaction(
       unit,
       amt * 1mutez,
       unwrap(

@@ -20,7 +20,7 @@ function main(
   | Remove_asset_bank(params)    -> remove_asset_bank(params, s)
   | Withdraw_network_fee(params) -> withdraw_network_fee(params, s)
 #if TEST
-  | _                            -> (no_operations, s)
+  | _                            -> (Constants.no_operations, s)
 #else
 #endif
   ];

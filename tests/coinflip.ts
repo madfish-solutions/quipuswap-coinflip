@@ -47,9 +47,9 @@ export interface Game {
 
 export interface AssetRecord {
   asset: Asset;
-  payout_quotient: BigNumber;
+  payout_quot_f: BigNumber;
   bank: BigNumber;
-  max_bet_percent: BigNumber;
+  max_bet_percent_f: BigNumber;
 }
 
 export interface CoinflipStorage {

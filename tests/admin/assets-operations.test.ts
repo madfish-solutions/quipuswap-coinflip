@@ -136,14 +136,14 @@ greater than 2",
 
         const tezAsset = coinflip.getAssetRecord(TEZ_ASSET);
         assertNumberValuesEquality(
-          tezAsset.payout_quotient,
+          tezAsset.payout_quot_f,
           newTezPayoutQuotient
         );
         const testFA2Asset = coinflip.getAssetRecord(
           testFA2TokenAsset
         );
         assertNumberValuesEquality(
-          testFA2Asset.payout_quotient,
+          testFA2Asset.payout_quot_f,
           newFA2TokenPayoutQuotient
         );
       }
@@ -254,14 +254,14 @@ greater than 100%",
           TEZ_ASSET
         );
         assertNumberValuesEquality(
-          tezAsset.max_bet_percent,
+          tezAsset.max_bet_percent_f,
           newTezMaxBetPercentage
         );
         const testFA2Asset = coinflip.getAssetRecord(
           testFA2TokenAsset
         );
         assertNumberValuesEquality(
-          testFA2Asset.max_bet_percent,
+          testFA2Asset.max_bet_percent_f,
           newFA2TokenMaxBetPercentage
         );
       }
@@ -489,8 +489,8 @@ TEZ asset",
           {
             bank: new BigNumber(0),
             asset: testFA2TokenAsset,
-            max_bet_percent: defaultMaxBetPercentage,
-            payout_quotient: defaultPayout
+            max_bet_percent_f: defaultMaxBetPercentage,
+            payout_quot_f: defaultPayout
           }
         );
       }

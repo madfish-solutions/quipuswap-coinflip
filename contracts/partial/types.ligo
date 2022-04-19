@@ -15,9 +15,9 @@ type asset_t is
 
 type asset_record_t     is [@layout:comb] record [
   asset                   : asset_t;
-  payout_quotient         : nat;
+  payout_quot_f           : nat;
   bank                    : nat;
-  max_bet_percent      : nat;
+  max_bet_percent_f       : nat;
 ]
 
 type game_t             is [@layout:comb] record [
@@ -66,8 +66,8 @@ type set_asset_value_t  is [@layout:comb] record [
 ]
 
 type add_asset_t        is [@layout:comb] record [
-  payout_quotient         : nat;
-  max_bet_percent      : nat;
+  payout_quot_f           : nat;
+  max_bet_percent_f       : nat;
   asset                   : asset_t;
 ]
 

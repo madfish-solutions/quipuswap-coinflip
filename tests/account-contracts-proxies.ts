@@ -32,9 +32,9 @@ export type CoinflipType = Exclude<keyof AccountContractsProxies, 'fa2'>;
 
 const makeAssetEntry = (asset: Asset, bank: BigNumber.Value = 0) => ({
   asset,
-  payout_quotient: defaultPayout,
+  payout_quot_f: defaultPayout,
   bank: new BigNumber(bank),
-  max_bet_percent: defaultMaxBetPercentage
+  max_bet_percent_f: defaultMaxBetPercentage
 });
 
 Tezos.setSignerProvider(signerAlice);
