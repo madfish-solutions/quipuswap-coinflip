@@ -8,8 +8,18 @@ import {
   makeFA2
 } from "../account-contracts-proxies";
 import { Coinflip } from "../coinflip";
-import { defaultFA2AssetId, defaultFA2TokenId, defaultUnknownAssetId, testMaxFA2Bet, tezAssetId } from "../constants";
-import { aliceTestcaseWithBalancesDiff, assertNumberValuesEquality, entrypointErrorTestcase } from '../helpers';
+import {
+  defaultFA2AssetId,
+  defaultFA2TokenId,
+  defaultUnknownAssetId,
+  testMaxFA2Bet,
+  tezAssetId
+} from "../constants";
+import {
+  testcaseWithBalancesDiff,
+  assertNumberValuesEquality,
+  entrypointErrorTestcase
+} from '../helpers';
 import { FA2 } from "../helpers/FA2";
 
 const defaultBetSize = 100;
@@ -159,14 +169,18 @@ amount is greater than bid size + network fee",
     async () => {
       const mutezAmount = defaultBetSize +
         coinflips.alice.storage.network_fee.toNumber();
-      await aliceTestcaseWithBalancesDiff(
+      await testcaseWithBalancesDiff(
         fa2Wrappers,
         coinflips,
         {
-          noFeesAliceTez: -mutezAmount,
-          aliceFA2: 0,
-          contractTez: mutezAmount,
-          contractFA2: 0
+          alice: {
+            tez: -mutezAmount,
+            fa2: 0
+          },
+          contract: {
+            tez: mutezAmount,
+            fa2: 0
+          }
         },
         (coinflip) => coinflip.sendSingle(
           coinflip.bet(
@@ -176,7 +190,7 @@ amount is greater than bid size + network fee",
             mutezAmount
           )
         ),
-        async (prevStorage) => {
+        async (prevStorage, userCoinflip) => {
           const expectedStart = new Date(
             (await Tezos.rpc.getBlockHeader()).timestamp
           ).toISOString();
@@ -186,7 +200,7 @@ amount is greater than bid size + network fee",
             id_to_asset: prevIdToAsset
           } = prevStorage;
           const prevTezBank = prevIdToAsset.get(tezAssetId).bank;
-          await coinflips.alice.updateStorage(
+          await userCoinflip.updateStorage(
             { games: [prevGamesCounter.toFixed()] }
           );
           const {
@@ -195,7 +209,7 @@ amount is greater than bid size + network fee",
             network_bank: networkBank,
             network_fee: networkFee,
             id_to_asset: idToAsset
-          } = coinflips.alice.storage;
+          } = userCoinflip.storage;
           const currentTezBank = idToAsset.get(tezAssetId).bank;
           assertNumberValuesEquality(
             prevTezBank,
@@ -232,14 +246,18 @@ amount is greater than bid size + network fee",
     'Should make a new record, increase network bank, and take tokens for FA2 token bid',
     async () => {
       const mutezAmount = coinflips.alice.storage.network_fee.toNumber();
-      await aliceTestcaseWithBalancesDiff(
+      await testcaseWithBalancesDiff(
         fa2Wrappers,
         coinflips,
         {
-          noFeesAliceTez: -mutezAmount,
-          aliceFA2: -defaultBetSize,
-          contractTez: mutezAmount,
-          contractFA2: defaultBetSize
+          alice: {
+            tez: -mutezAmount,
+            fa2: -defaultBetSize
+          },
+          contract: {
+            tez: mutezAmount,
+            fa2: defaultBetSize
+          }
         },
         (coinflip, fa2) => coinflip.sendBatch([
           fa2.updateOperators([
@@ -258,7 +276,7 @@ amount is greater than bid size + network fee",
             mutezAmount
           )
         ]),
-        async (prevStorage) => {
+        async (prevStorage, userCoinflip) => {
           const expectedStart = new Date(
             (await Tezos.rpc.getBlockHeader()).timestamp
           ).toISOString();
@@ -268,7 +286,7 @@ amount is greater than bid size + network fee",
             id_to_asset: prevIdToAsset
           } = prevStorage;
           const prevFA2Bank = prevIdToAsset.get(defaultFA2AssetId).bank;
-          await coinflips.alice.updateStorage(
+          await userCoinflip.updateStorage(
             { games: [prevGamesCounter.toFixed()] }
           );
           const {
@@ -277,7 +295,7 @@ amount is greater than bid size + network fee",
             network_bank: networkBank,
             network_fee: networkFee,
             id_to_asset: idToAsset
-          } = coinflips.alice.storage;
+          } = userCoinflip.storage;
           const currentFA2Bank = idToAsset.get(defaultFA2AssetId).bank;
           assertNumberValuesEquality(prevFA2Bank, currentFA2Bank);
           assertNumberValuesEquality(

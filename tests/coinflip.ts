@@ -368,4 +368,10 @@ export class Coinflip {
       sendParams: { mutez: true, amount: mutezAmount }
     };
   }
+
+  reveal(
+    reveals: { game_id: BigNumber.Value, random_value: BigNumber.Value }[]
+  ) {
+    return this.contract.methods.reveal(reveals);
+  }
 }

@@ -23,10 +23,9 @@ import { strictEqual, rejects } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import { confirmOperation } from '../utils/confirmation';
-import { AssetRecord, Coinflip, CoinflipStorage } from './coinflip';
-import defaultStorage from './storage/coinflip';
+import { Coinflip, CoinflipStorage } from './coinflip';
 import { FA2 } from './helpers/FA2';
-import { alice } from '../scripts/sandbox/accounts';
+import accounts from '../scripts/sandbox/accounts';
 import { Tezos } from './utils/cli';
 import { defaultFA2AssetId, defaultFA2TokenId, tezAssetId } from './constants';
 
@@ -120,28 +119,6 @@ export async function sendSingle(
   return sendWithConfirmation(tezos, payload);
 }
 
-export const makeStorage = (
-  assets: AssetRecord[] = [],
-  networkBank: BigNumber.Value = 0,
-  networkFee: BigNumber.Value = defaultStorage.network_fee
-): CoinflipStorage => ({
-  ...defaultStorage,
-  network_fee: new BigNumber(networkFee),
-  network_bank: new BigNumber(networkBank),
-  assets_counter: new BigNumber(assets.length),
-  asset_to_id: MichelsonMap.fromLiteral(
-    Object.fromEntries(
-      assets.map((asset, index) => [
-        Coinflip.getAssetKey(asset.asset),
-        new BigNumber(index)
-      ])
-    )
-  ) as CoinflipStorage['asset_to_id'],
-  id_to_asset: MichelsonMap.fromLiteral(
-    Object.fromEntries(assets.map((asset, index) => [index.toString(), asset]))
-  ) as CoinflipStorage['id_to_asset']
-});
-
 export function cloneMichelsonMap<Key extends MichelsonMapKey, Value>(
   map: MichelsonMap<Key, Value>
 ) {
@@ -224,63 +201,120 @@ export async function adminErrorTestcase(
   await entrypointErrorTestcase(methodFn(coinflip), expectedError);
 }
 
-export async function aliceTestcaseWithBalancesDiff(
+export async function serverErrorTestcase(
+  accountsContractsProxies: Record<string, Coinflip>,
+  methodFn: (coinflip: Coinflip) => BatchContentsEntry,
+  expectedError: string
+) {
+  const coinflip = accountsContractsProxies.bob;
+
+  await entrypointErrorTestcase(methodFn(coinflip), expectedError);
+}
+
+export type ExpectedBalancesDiffs = Record<
+  string,
+  Record<'tez' | 'fa2', BigNumber.Value>
+>;
+
+type UsersBalances = Record<string, Record<'tez' | 'fa2', BigNumber>>;
+
+export const CONTRACT_ALIAS = 'contract';
+
+export async function testcaseWithBalancesDiff(
   fa2Wrappers: Record<string, FA2>,
   coinflips: Record<string, Coinflip>,
-  balancesDiffs: {
-    noFeesAliceTez: BigNumber.Value,
-    aliceFA2: BigNumber.Value,
-    contractTez: BigNumber.Value,
-    contractFA2: BigNumber.Value,
-  },
-  operation: (coinflip: Coinflip, fa2: FA2) => Promise<
+  expectedBalancesDiffs: ExpectedBalancesDiffs,
+  operation: (userCoinflip: Coinflip, userFa2: FA2) => Promise<
     BatchWalletOperation | TransactionOperation
   >,
-  otherAssertions: (prevStorage: CoinflipStorage) => void | Promise<void>
+  otherAssertions: (
+    prevStorage: CoinflipStorage,
+    userCoinflip: Coinflip
+  ) => void | Promise<void>,
+  userAlias = 'alice'
 ) {
-  const fa2 = fa2Wrappers.alice;
-  const coinflip = coinflips.alice;
-  const { contractAddress, storage: prevStorage } = coinflip;
-  await coinflip.updateStorage({
-    id_to_asset: [tezAssetId, defaultFA2AssetId]
-  });
-  await fa2.updateStorage({ account_info: [alice.pkh, contractAddress] });
-  const oldBalances = {
-    aliceTez: await Tezos.tz.getBalance(alice.pkh),
-    aliceFA2: fa2.getTokenBalance(alice.pkh, String(defaultFA2TokenId)),
-    contractTez: await Tezos.tz.getBalance(contractAddress),
-    contractFA2: fa2.getTokenBalance(contractAddress, String(defaultFA2TokenId))
-  };
+  const fa2 = fa2Wrappers[userAlias];
+  const coinflip = coinflips[userAlias];
+  const ownersAliases = Object.keys(expectedBalancesDiffs);
+  const ownersAddresses: string[] = ownersAliases.map(
+    alias => alias === CONTRACT_ALIAS
+      ? coinflip.contractAddress
+      : accounts[alias].pkh
+  );
+  await Promise.all([
+    fa2.updateStorage({ account_info: ownersAddresses }),
+    ...ownersAliases
+      .filter(alias => alias !== CONTRACT_ALIAS)
+      .map(
+        alias => coinflips[alias].updateStorage({
+          id_to_asset: [tezAssetId, defaultFA2AssetId]
+        })
+      )
+  ]);
+  const { storage: prevStorage } = coinflip;
+  const oldBalances: UsersBalances = Object.fromEntries(
+    await Promise.all(ownersAliases.map(async (alias, index) => {
+      const accountPkh = ownersAddresses[index];
+
+      return [
+        alias,
+        {
+          tez: await Tezos.tz.getBalance(accountPkh),
+          fa2: fa2.getTokenBalance(accountPkh, String(defaultFA2TokenId))
+        }
+      ];
+    }))
+  );
+
   const totalFee = await getTotalFee(await operation(coinflip, fa2));
-  await coinflip.updateStorage({
-    id_to_asset: [tezAssetId, defaultFA2AssetId]
+  await Promise.all([
+    fa2.updateStorage({ account_info: ownersAddresses }),
+    ...ownersAliases
+      .filter(alias => alias !== CONTRACT_ALIAS)
+      .map(
+        alias => coinflips[alias].updateStorage({
+          id_to_asset: [tezAssetId, defaultFA2AssetId]
+        })
+      )
+  ]);
+  const newBalances: UsersBalances = Object.fromEntries(
+    await Promise.all(ownersAliases.map(async (alias, index) => {
+      const accountPkh = ownersAddresses[index];
+
+      return [
+        alias,
+        {
+          tez: await Tezos.tz.getBalance(accountPkh),
+          fa2: fa2.getTokenBalance(accountPkh, String(defaultFA2TokenId))
+        }
+      ];
+    }))
+  );
+
+  ownersAliases.forEach(alias => {
+    const { tez: prevTezBalance, fa2: prevFa2Balance } = oldBalances[alias];
+    const { tez: newTezBalance, fa2: newFa2Balance } = newBalances[alias];
+    const {
+      tez: expectedTezDiff,
+      fa2: expectedFa2Diff
+    } = expectedBalancesDiffs[alias];
+    assertNumberValuesEquality(
+      newFa2Balance.minus(prevFa2Balance),
+      expectedFa2Diff,
+      alias === CONTRACT_ALIAS
+        ? "Balance of FA2 token for contract doesn't match"
+        : `Balance of FA2 token for '${alias}' account doesn't match`
+    );
+    assertNumberValuesEquality(
+      newTezBalance
+        .minus(prevTezBalance)
+        .plus(alias === userAlias ? totalFee : 0),
+      expectedTezDiff,
+      alias === CONTRACT_ALIAS
+        ? "Balance of TEZ for contract doesn't match"
+        : `Balance of TEZ for '${alias}' account doesn't match`
+    );
   });
-  await fa2.updateStorage({ account_info: [alice.pkh, contractAddress] });
-  const newBalances = {
-    aliceTez: await Tezos.tz.getBalance(alice.pkh),
-    aliceFA2: fa2.getTokenBalance(alice.pkh, String(defaultFA2TokenId)),
-    contractTez: await Tezos.tz.getBalance(contractAddress),
-    contractFA2: fa2.getTokenBalance(contractAddress, String(defaultFA2TokenId))
-  };
-  assertNumberValuesEquality(
-    newBalances.aliceFA2.minus(oldBalances.aliceFA2),
-    balancesDiffs.aliceFA2,
-    "Balance of FA2 token for Alice doesn't match"
-  );
-  assertNumberValuesEquality(
-    newBalances.aliceTez.minus(oldBalances.aliceTez).plus(totalFee),
-    balancesDiffs.noFeesAliceTez,
-    "TEZ balance for Alice doesn't match"
-  );
-  assertNumberValuesEquality(
-    newBalances.contractFA2.minus(oldBalances.contractFA2),
-    balancesDiffs.contractFA2,
-    "Balance of FA2 token for contract doesn't match"
-  );
-  assertNumberValuesEquality(
-    newBalances.contractTez.minus(oldBalances.contractTez),
-    balancesDiffs.contractTez,
-    "TEZ balance for contract doesn't match"
-  );
-  await otherAssertions(prevStorage);
+
+  await otherAssertions(prevStorage, coinflip);
 }

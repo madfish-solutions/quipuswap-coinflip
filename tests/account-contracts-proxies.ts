@@ -1,36 +1,57 @@
+import { MichelsonMap } from '@taquito/taquito';
 import BigNumber from 'bignumber.js';
 
 import { initTezos } from '../utils/helpers';
 import { Tezos, signerAlice } from './utils/cli';
 import {
   Asset,
+  AssetRecord,
   Coinflip,
   CoinflipStorage,
+  Game,
   TEZ_ASSET
 } from './coinflip';
 import defaultStorage from './storage/coinflip';
 import { FA2 } from './helpers/FA2';
 import { fa2Storage } from './storage/fa2';
-import { makeStorage } from './helpers';
 import {
   defaultPayout,
   defaultMaxBetPercentage,
   testTezBank,
   testFa2TokenBank,
   testNetworkBank,
-  defaultFA2TokenId
+  defaultFA2TokenId,
+  testGames
 } from './constants';
 
-interface AccountContractsProxies {
-  emptyCoinflip: Coinflip;
-  fa2: FA2;
-  allAssetsAddedCoinflip: Coinflip;
-  allAssetsWithBankCoinflip: Coinflip;
-}
+const makeStorage = (
+  assets: AssetRecord[] = [],
+  networkBank: BigNumber.Value = 0,
+  networkFee: BigNumber.Value = defaultStorage.network_fee,
+  games: Game[] = []
+): CoinflipStorage => ({
+  ...defaultStorage,
+  network_fee: new BigNumber(networkFee),
+  network_bank: new BigNumber(networkBank),
+  assets_counter: new BigNumber(assets.length),
+  asset_to_id: MichelsonMap.fromLiteral(
+    Object.fromEntries(
+      assets.map((asset, index) => [
+        Coinflip.getAssetKey(asset.asset),
+        new BigNumber(index)
+      ])
+    )
+  ) as CoinflipStorage['asset_to_id'],
+  id_to_asset: MichelsonMap.fromLiteral(
+    Object.fromEntries(assets.map((asset, index) => [index.toString(), asset]))
+  ) as CoinflipStorage['id_to_asset'],
+  games_counter: new BigNumber(games.length),
+  games: MichelsonMap.fromLiteral(
+    Object.fromEntries(games.map((game, index) => [index.toString(), game]))
+  ) as CoinflipStorage['games']
+});
 
-export type CoinflipType = Exclude<keyof AccountContractsProxies, 'fa2'>;
-
-const makeAssetEntry = (asset: Asset, bank: BigNumber.Value = 0) => ({
+export const makeAssetRecord = (asset: Asset, bank: BigNumber.Value = 0) => ({
   asset,
   payout_quot_f: defaultPayout,
   bank: new BigNumber(bank),
@@ -81,8 +102,8 @@ export async function makeAllAssetsAddedCoinflip(
   return makeCoinflip(
     makeStorage(
       [
-        makeAssetEntry(TEZ_ASSET),
-        makeAssetEntry({
+        makeAssetRecord(TEZ_ASSET),
+        makeAssetRecord({
           fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) }
         })
       ]
@@ -100,13 +121,38 @@ export async function makeAllAssetsWithBankCoinflip(
   return makeCoinflip(
     makeStorage(
       [
-        makeAssetEntry(TEZ_ASSET, testTezBank),
-        makeAssetEntry(
+        makeAssetRecord(TEZ_ASSET, testTezBank),
+        makeAssetRecord(
           { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
           testFa2TokenBank
         )
       ],
       testNetworkBank
+    )
+  );
+}
+
+export async function makeAssetsWithGamesCoinflip(
+  fa2TokenAddress: string,
+  fa2TokenId = defaultFA2TokenId,
+  games = testGames,
+  assetEntries?: AssetRecord[]
+) {
+  console.log(
+    'Originating coinflip contract with games and transfering assets to it...'
+  );
+  return makeCoinflip(
+    makeStorage(
+      assetEntries ?? [
+        makeAssetRecord(TEZ_ASSET, testTezBank),
+        makeAssetRecord(
+          { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
+          testFa2TokenBank
+        )
+      ],
+      testNetworkBank,
+      defaultStorage.network_fee,
+      games
     )
   );
 }
