@@ -71,11 +71,11 @@ function reveal(
   block {
     require(Tezos.sender = storage.server, Coinflip.not_server);
     require(List.length(params) > 0n, Coinflip.empty_list);
-    const reveal_results : reveal_acc_t = List.fold(
-      function(
-        const acc        : reveal_acc_t;
-        const one_reveal : one_reveal_t)
-                         : reveal_acc_t is
+
+    function process_reveals(
+      const acc         : reveal_acc_t;
+      const one_reveal  : one_reveal_t)
+                        : reveal_acc_t is
       block {
         var new_operations := acc.operations;
         var new_games := acc.games;
@@ -122,7 +122,10 @@ function reveal(
         operations  = new_operations;
         games       = new_games;
         id_to_asset = new_id_to_asset
-      ],
+      ];
+
+    const reveal_results : reveal_acc_t = List.fold(
+      process_reveals,
       params,
       record [
         operations  = Constants.no_operations;
