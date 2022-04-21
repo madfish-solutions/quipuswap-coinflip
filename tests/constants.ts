@@ -18,8 +18,8 @@ export const testFa2TokenBank = 1000;
 export const testMaxFA2Bet = 500;
 export const testMaxTezBet = 2500;
 
-export const nonExistentFA2Descriptor = {
-  fA2: {
+export const nonExistentFA2Asset = {
+  fa2: {
     address: 'KT1HrQWkSFe7ugihjoMWwQ7p8ja9e18LdUFn',
     id: new BigNumber(0)
   }

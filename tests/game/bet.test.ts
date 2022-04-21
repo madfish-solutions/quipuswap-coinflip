@@ -296,7 +296,7 @@ amount is greater than bid size + network fee",
             restProps,
             {
               asset: {
-                fA2: {
+                fa2: {
                   address: fa2Wrappers.alice.contract.address,
                   id: new BigNumber(defaultFA2TokenId)
                 }

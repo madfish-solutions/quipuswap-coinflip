@@ -1,7 +1,7 @@
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 
-import { AssetDescriptor, Coinflip, TEZ_ASSET_DESCRIPTOR } from '../coinflip';
+import { Asset, Coinflip, TEZ_ASSET } from '../coinflip';
 import {
   adminErrorTestcase,
   assertNumberValuesEquality,
@@ -15,7 +15,7 @@ import {
   tezAssetId,
   defaultUnknownAssetId,
   defaultFA2AssetId,
-  nonExistentFA2Descriptor,
+  nonExistentFA2Asset,
   defaultFA2TokenId
 } from '../constants';
 import {
@@ -28,15 +28,15 @@ const defaultNewMaxBetPercentage = PERCENT_PRECISION.times(75);
 const defaultNewPayout = PRECISION.times(1.1);
 
 describe('Coinflip admin assets entrypoints test', function () {
-  let testFA2TokenDescriptor: AssetDescriptor;
+  let testFA2TokenAsset: Asset;
   let allAssetsAddedCoinflips: Record<string, Coinflip> = {};
   let emptyCoinflips: Record<string, Coinflip> = {};
 
   beforeAll(async () => {
     const fa2Wrappers = await makeFA2();
     const fa2TokenAddress = fa2Wrappers.alice.contract.address;
-    testFA2TokenDescriptor = {
-      fA2: {
+    testFA2TokenAsset = {
+      fa2: {
         address: fa2TokenAddress,
         id: new BigNumber(defaultFA2TokenId)
       }
@@ -131,19 +131,19 @@ greater than 2",
             newFA2TokenPayoutQuotient
           )
         ]);
-        await coinflip.updateAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
-        await coinflip.updateAssetByDescriptor(testFA2TokenDescriptor);
+        await coinflip.updateAssetRecord(TEZ_ASSET);
+        await coinflip.updateAssetRecord(testFA2TokenAsset);
 
-        const tezAsset = coinflip.getAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
+        const tezAsset = coinflip.getAssetRecord(TEZ_ASSET);
         assertNumberValuesEquality(
-          tezAsset.payout_quotient,
+          tezAsset.payout_quot_f,
           newTezPayoutQuotient
         );
-        const testFA2Asset = coinflip.getAssetByDescriptor(
-          testFA2TokenDescriptor
+        const testFA2Asset = coinflip.getAssetRecord(
+          testFA2TokenAsset
         );
         assertNumberValuesEquality(
-          testFA2Asset.payout_quotient,
+          testFA2Asset.payout_quot_f,
           newFA2TokenPayoutQuotient
         );
       }
@@ -243,25 +243,25 @@ greater than 100%",
             newFA2TokenMaxBetPercentage
           )
         ]);
-        await coinflip.updateAssetByDescriptor(
-          TEZ_ASSET_DESCRIPTOR
+        await coinflip.updateAssetRecord(
+          TEZ_ASSET
         );
-        await coinflip.updateAssetByDescriptor(
-          testFA2TokenDescriptor
+        await coinflip.updateAssetRecord(
+          testFA2TokenAsset
         );
 
-        const tezAsset = coinflip.getAssetByDescriptor(
-          TEZ_ASSET_DESCRIPTOR
+        const tezAsset = coinflip.getAssetRecord(
+          TEZ_ASSET
         );
         assertNumberValuesEquality(
-          tezAsset.max_bet_percentage,
+          tezAsset.max_bet_percent_f,
           newTezMaxBetPercentage
         );
-        const testFA2Asset = coinflip.getAssetByDescriptor(
-          testFA2TokenDescriptor
+        const testFA2Asset = coinflip.getAssetRecord(
+          testFA2TokenAsset
         );
         assertNumberValuesEquality(
-          testFA2Asset.max_bet_percentage,
+          testFA2Asset.max_bet_percent_f,
           newFA2TokenMaxBetPercentage
         );
       }
@@ -291,7 +291,7 @@ greater than 100%",
           emptyCoinflips.bob.addAsset(
             PRECISION.plus(1),
             1,
-            TEZ_ASSET_DESCRIPTOR
+            TEZ_ASSET
           )
         )
       );
@@ -303,7 +303,7 @@ tries to add asset',
           emptyCoinflips.bob.addAsset(
             PRECISION.plus(1),
             1,
-            TEZ_ASSET_DESCRIPTOR
+            TEZ_ASSET
           )
         )
       );
@@ -318,7 +318,7 @@ tries to add asset',
             coinflip => coinflip.addAsset(
               defaultPayout,
               0,
-              TEZ_ASSET_DESCRIPTOR
+              TEZ_ASSET
             ),
             'Coinflip/max-bet-too-low'
           )
@@ -332,7 +332,7 @@ equal to 100%",
             coinflip => coinflip.addAsset(
               defaultPayout,
               PRECISION,
-              TEZ_ASSET_DESCRIPTOR
+              TEZ_ASSET
             ),
             'Coinflip/max-bet-exceed'
           )
@@ -346,7 +346,7 @@ greater than 100%",
             coinflip => coinflip.addAsset(
               defaultPayout,
               PRECISION.plus(1),
-              TEZ_ASSET_DESCRIPTOR
+              TEZ_ASSET
             ),
             'Coinflip/max-bet-exceed'
           )
@@ -363,7 +363,7 @@ payout quotient equal to 1",
             coinflip => coinflip.addAsset(
               PRECISION,
               defaultNewMaxBetPercentage,
-              TEZ_ASSET_DESCRIPTOR
+              TEZ_ASSET
             ),
             'Coinflip/payout-too-low'
           )
@@ -377,7 +377,7 @@ payout quotient less than 1",
             coinflip => coinflip.addAsset(
               PRECISION.minus(1),
               defaultNewMaxBetPercentage,
-              TEZ_ASSET_DESCRIPTOR
+              TEZ_ASSET
             ),
             'Coinflip/payout-too-low'
           )
@@ -391,7 +391,7 @@ payout quotient greater than 2",
             coinflip => coinflip.addAsset(
               PRECISION.times(2).plus(1),
               defaultNewMaxBetPercentage,
-              TEZ_ASSET_DESCRIPTOR
+              TEZ_ASSET
             ),
             'Coinflip/payout-too-high'
           )
@@ -407,7 +407,7 @@ FA2 asset",
             coinflip => coinflip.addAsset(
               defaultPayout,
               defaultMaxBetPercentage,
-              testFA2TokenDescriptor
+              testFA2TokenAsset
             ),
             'Coinflip/asset-exists'
           )
@@ -421,7 +421,7 @@ TEZ asset",
             coinflip => coinflip.addAsset(
               defaultPayout,
               defaultMaxBetPercentage,
-              TEZ_ASSET_DESCRIPTOR
+              TEZ_ASSET
             ),
             'Coinflip/asset-exists'
           )
@@ -434,7 +434,7 @@ TEZ asset",
             coinflip => coinflip.addAsset(
               defaultPayout,
               defaultMaxBetPercentage,
-              nonExistentFA2Descriptor
+              nonExistentFA2Asset
             ),
             'Coinflip/invalid-asset'
           )
@@ -449,16 +449,16 @@ TEZ asset",
         const prevAssetsCounter = coinflip.storage.assets_counter;
 
         await coinflip.sendSingle(
-          coinflip.addAsset(PRECISION.plus(1), 1, TEZ_ASSET_DESCRIPTOR)
+          coinflip.addAsset(PRECISION.plus(1), 1, TEZ_ASSET)
         );
-        await coinflip.updateAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
+        await coinflip.updateAssetRecord(TEZ_ASSET);
 
-        const addedAsset = coinflip.getAssetByDescriptor(TEZ_ASSET_DESCRIPTOR);
+        const addedAsset = coinflip.getAssetRecord(TEZ_ASSET);
         assertNumberValuesEquality(
           coinflip.storage.assets_counter,
           prevAssetsCounter.plus(1)
         );
-        assert(addedAsset && ('tez' in addedAsset.descriptor));
+        assert(addedAsset && ('tez' in addedAsset.asset));
       }
     );
 
@@ -472,13 +472,13 @@ TEZ asset",
           coinflip.addAsset(
             defaultPayout,
             defaultMaxBetPercentage,
-            testFA2TokenDescriptor
+            testFA2TokenAsset
           )
         );
-        await coinflip.updateAssetByDescriptor(testFA2TokenDescriptor);
+        await coinflip.updateAssetRecord(testFA2TokenAsset);
 
-        const addedAsset = coinflip.getAssetByDescriptor(
-          testFA2TokenDescriptor
+        const addedAsset = coinflip.getAssetRecord(
+          testFA2TokenAsset
         );
         assertNumberValuesEquality(
           coinflip.storage.assets_counter,
@@ -488,9 +488,9 @@ TEZ asset",
           addedAsset,
           {
             bank: new BigNumber(0),
-            descriptor: testFA2TokenDescriptor,
-            max_bet_percentage: defaultMaxBetPercentage,
-            payout_quotient: defaultPayout
+            asset: testFA2TokenAsset,
+            max_bet_percent_f: defaultMaxBetPercentage,
+            payout_quot_f: defaultPayout
           }
         );
       }

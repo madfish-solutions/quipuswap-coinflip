@@ -1,6 +1,6 @@
-type token_id_t      is nat (* Token ID *)
+type token_id_t         is nat (* Token ID *)
 
-type transfer_dst_type  is [@layout:comb] record [
+type transfer_dst_t     is [@layout:comb] record [
   (* Recipient of tokens *)
   to_                     : address;
   (* Token ID *)
@@ -9,12 +9,12 @@ type transfer_dst_type  is [@layout:comb] record [
   amount                  : nat;
 ]
 
-type fa2_send_type      is [@layout:comb] record [
+type fa2_send_t         is [@layout:comb] record [
   (* Sender of tokens *)
   from_                   : address;
   (* Transactions *)
-  txs                     : list(transfer_dst_type);
+  txs                     : list(transfer_dst_t);
 ]
 
-type fa2_transfer_type  is
-FA2_transfer_type         of list(fa2_send_type) (* Transfers list *)
+type fa2_transfer_t     is
+Fa2_transfer_type         of list(fa2_send_t) (* Transfers list *)

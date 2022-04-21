@@ -23,7 +23,7 @@ import { strictEqual, rejects } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import { confirmOperation } from '../utils/confirmation';
-import { Asset, Coinflip, CoinflipStorage } from './coinflip';
+import { AssetRecord, Coinflip, CoinflipStorage } from './coinflip';
 import defaultStorage from './storage/coinflip';
 import { FA2 } from './helpers/FA2';
 import { alice } from '../scripts/sandbox/accounts';
@@ -121,7 +121,7 @@ export async function sendSingle(
 }
 
 export const makeStorage = (
-  assets: Asset[] = [],
+  assets: AssetRecord[] = [],
   networkBank: BigNumber.Value = 0,
   networkFee: BigNumber.Value = defaultStorage.network_fee
 ): CoinflipStorage => ({
@@ -132,7 +132,7 @@ export const makeStorage = (
   asset_to_id: MichelsonMap.fromLiteral(
     Object.fromEntries(
       assets.map((asset, index) => [
-        Coinflip.getAssetKey(asset.descriptor),
+        Coinflip.getAssetKey(asset.asset),
         new BigNumber(index)
       ])
     )

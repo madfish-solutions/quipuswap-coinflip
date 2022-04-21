@@ -9,15 +9,15 @@ type fa2_token_t        is [@layout:comb] record [
   id                      : token_id_t;
 ]
 
-type asset_descriptor_t is
+type asset_t is
 | Tez                     of unit
-| FA2                     of fa2_token_t
+| Fa2                     of fa2_token_t
 
-type asset_t            is [@layout:comb] record [
-  descriptor              : asset_descriptor_t;
-  payout_quotient         : nat;
+type asset_record_t     is [@layout:comb] record [
+  asset                   : asset_t;
+  payout_quot_f           : nat;
   bank                    : nat;
-  max_bet_percentage      : nat;
+  max_bet_percent_f       : nat;
 ]
 
 type game_status_t      is
@@ -26,7 +26,7 @@ type game_status_t      is
 | Lost                    of unit
 
 type game_t             is [@layout:comb] record [
-  asset                   : asset_descriptor_t;
+  asset                   : asset_t;
   start                   : timestamp;
   bid_size                : nat;
   bet_coin_side           : coin_side_t;
@@ -41,7 +41,7 @@ type storage_t          is [@layout:comb] record [
   assets_counter          : nat;
   network_fee             : tez;
   asset_to_id             : big_map(bytes, nat);
-  id_to_asset             : big_map(nat, asset_t);
+  id_to_asset             : big_map(nat, asset_record_t);
   network_bank            : tez;
 ]
 
@@ -66,14 +66,14 @@ type bank_params_t      is [@layout:comb] record [
 ]
 
 type set_asset_value_t  is [@layout:comb] record [
-  value                   : nat;
+  value_f                 : nat;
   asset_id                : nat;
 ]
 
 type add_asset_t        is [@layout:comb] record [
-  payout_quotient         : nat;
-  max_bet_percentage      : nat;
-  asset                   : asset_descriptor_t;
+  payout_quot_f           : nat;
+  max_bet_percent_f       : nat;
+  asset                   : asset_t;
 ]
 
 type actions_t          is

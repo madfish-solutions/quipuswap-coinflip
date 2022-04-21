@@ -26,32 +26,32 @@ export type CoinSide = { head: Symbol } | { tail: Symbol };
 
 export type Status = { started: Symbol } | { won: Symbol } | { lost: Symbol };
 
-interface TezAssetDescriptor {
+interface TezAsset {
   tez: Symbol;
 }
 
-interface FA2TokenDescriptor {
-  fA2: {
+interface FA2TokenAsset {
+  fa2: {
     address: string;
     id: BigNumber;
   }
 }
 
-export type AssetDescriptor = TezAssetDescriptor | FA2TokenDescriptor;
+export type Asset = TezAsset | FA2TokenAsset;
 
 export interface Game {
-  asset: AssetDescriptor;
+  asset: Asset;
   start: string;
   bid_size: BigNumber;
   bet_coin_side: CoinSide;
   status: Status;
 }
 
-export interface Asset {
-  descriptor: AssetDescriptor;
-  payout_quotient: BigNumber;
+export interface AssetRecord {
+  asset: Asset;
+  payout_quot_f: BigNumber;
   bank: BigNumber;
-  max_bet_percentage: BigNumber;
+  max_bet_percent_f: BigNumber;
 }
 
 export interface CoinflipStorage {
@@ -62,7 +62,7 @@ export interface CoinflipStorage {
   assets_counter: BigNumber;
   network_fee: BigNumber;
   asset_to_id: MichelsonMap<string, BigNumber>;
-  id_to_asset: MichelsonMap<string, Asset>; // BigNumber
+  id_to_asset: MichelsonMap<string, AssetRecord>; // BigNumber
   network_bank: BigNumber;
 }
 
@@ -73,7 +73,7 @@ interface RawCoinflipStorage extends Omit<
   BigMapName
 >, Record<BigMapName, BigMapAbstraction> {}
 
-const assetDescriptorSchema = new Schema({
+const assetSchema = new Schema({
   prim: 'or',
   args: [
     {
@@ -82,14 +82,14 @@ const assetDescriptorSchema = new Schema({
         { prim: 'address', annots: ['%address'] },
         { prim: 'nat', annots: ['%id'] }
       ],
-      annots: ['%fA2']
+      annots: ['%fa2']
     },
     { prim: 'unit', annots: ['%tez'] }
   ],
   annots: ['%asset']
 });
 
-export const TEZ_ASSET_DESCRIPTOR = { tez: Symbol() };
+export const TEZ_ASSET = { tez: Symbol() };
 
 export class Coinflip {
   constructor(
@@ -138,18 +138,18 @@ export class Coinflip {
       if ('tez' in asset) {
         mutezToTransfer = mutezToTransfer.plus(bid_size);
       } else {
-        unfoldedFa2Transfers.push({ ...asset.fA2, amount: bid_size });
+        unfoldedFa2Transfers.push({ ...asset.fa2, amount: bid_size });
       }
     }
-    for (const asset of storage.id_to_asset.values()) {
-      const { descriptor, bank } = asset;
+    for (const assetRecord of storage.id_to_asset.values()) {
+      const { asset, bank } = assetRecord;
       if (bank.eq(0)) {
         continue;
       }
-      if ('tez' in descriptor) {
+      if ('tez' in asset) {
         mutezToTransfer = mutezToTransfer.plus(bank);
       } else {
-        unfoldedFa2Transfers.push({ ...descriptor.fA2, amount: bank });
+        unfoldedFa2Transfers.push({ ...asset.fa2, amount: bank });
       }
     }
     const foldedFa2Transfers = unfoldedFa2Transfers
@@ -243,16 +243,16 @@ export class Coinflip {
     return sendSingle(this.tezos, payload);
   }
 
-  static getAssetKey(asset: AssetDescriptor) {
+  static getAssetKey(asset: Asset) {
     const keyToEncode = replaceAddressesWithBytes(
-      assetDescriptorSchema.Encode(asset)
+      assetSchema.Encode(asset)
     );
 
     return packDataBytes(keyToEncode).bytes;
   }
 
-  async updateAssetByDescriptor(descriptor: AssetDescriptor) {
-    const assetKey = Coinflip.getAssetKey(descriptor);
+  async updateAssetRecord(asset: Asset) {
+    const assetKey = Coinflip.getAssetKey(asset);
     await this.updateStorage({ asset_to_id: [assetKey] });
     const assetId = this.storage.asset_to_id.get(assetKey);
 
@@ -261,8 +261,8 @@ export class Coinflip {
     }
   }
 
-  getAssetByDescriptor(descriptor: AssetDescriptor): Asset | undefined {
-    const assetKey = Coinflip.getAssetKey(descriptor);
+  getAssetRecord(asset: Asset): AssetRecord | undefined {
+    const assetKey = Coinflip.getAssetKey(asset);
     const assetId = this.storage.asset_to_id.get(assetKey);
     
     if (!assetId) {
@@ -279,7 +279,7 @@ export class Coinflip {
   addAsset(
     payoutQuotient: BigNumber.Value,
     maxBetPercentage: BigNumber.Value,
-    asset: AssetDescriptor
+    asset: Asset
   ) {
     if ('tez' in asset) {
       return this.contract.methods.add_asset(
@@ -292,9 +292,9 @@ export class Coinflip {
     return this.contract.methods.add_asset(
       payoutQuotient,
       maxBetPercentage,
-      'fA2',
-      asset.fA2.address,
-      asset.fA2.id
+      'fa2',
+      asset.fa2.address,
+      asset.fa2.id
     );
   }
 

@@ -13,8 +13,8 @@
   const error           : string)
                         : a is
   case param of [
-    | Some(instance) -> instance
-    | None -> failwith(error)
+  | Some(instance) -> instance
+  | None           -> failwith(error)
   ];
 
 [@inline] function nat_or_error(
@@ -23,51 +23,51 @@
                         : nat is
   unwrap(is_nat(value), err);
 
-[@inline] function unwrap_asset(
+[@inline] function unwrap_asset_record(
   const asset_id          : nat;
-  const id_to_asset       : big_map(nat, asset_t))
-                          : asset_t is
+  const id_to_asset       : big_map(nat, asset_record_t))
+                          : asset_record_t is
   unwrap(id_to_asset[asset_id], Coinflip.unknown_asset);
 
 [@inline] function assert_valid_payout(
-  const value             : nat)
+  const value_f           : nat)
                           : unit is
   block {
-    require(value > precision, Coinflip.payout_too_low);
-    require(value <= 2n * precision, Coinflip.payout_too_high);
+    require(value_f > Constants.precision, Coinflip.payout_too_low);
+    require(value_f <= Constants.max_payout_f, Coinflip.payout_too_high);
   } with unit;
 
 [@inline] function assert_valid_max_bet(
-  const value             : nat)
+  const value_f           : nat)
                           : unit is
   block {
-    require(value > 0n, Coinflip.max_bet_too_low);
-    require(value < precision, Coinflip.max_bet_exceed);
+    require(value_f > 0n, Coinflip.max_bet_too_low);
+    require(value_f < Constants.precision, Coinflip.max_bet_exceed);
   } with unit;
 
 function get_opt_fa2_transfer_entrypoint(
   const token           : address)
-                        : option(contract(fa2_transfer_type)) is
+                        : option(contract(fa2_transfer_t)) is
   Tezos.get_entrypoint_opt("%transfer", token);
 
 function get_fa2_token_transfer_entrypoint(
   const token           : address)
-                        : contract(fa2_transfer_type) is
+                        : contract(fa2_transfer_t) is
   case (get_opt_fa2_transfer_entrypoint(token)) of [
   | Some(contr) -> contr
   | None        -> (
     failwith("QSystem/fa2-transfer-entrypoint-404")
-                        : contract(fa2_transfer_type)
+                        : contract(fa2_transfer_t)
   )
   ]
 
 [@inline] function assert_valid_asset(
-  const asset           : asset_descriptor_t;
+  const asset           : asset_t;
   const error           : string)
                         : unit is
   block {
     case asset of [
-    | FA2(token) -> assert_some_with_error(
+    | Fa2(token) -> assert_some_with_error(
       get_opt_fa2_transfer_entrypoint(token.address),
       error
     )
@@ -80,8 +80,8 @@ function wrap_fa2_transfer_trx(
   const to_             : address;
   const amt             : nat;
   const id              : nat)
-                        : fa2_transfer_type is
-  FA2_transfer_type(list [
+                        : fa2_transfer_t is
+  Fa2_transfer_type(list [
     record [
       from_ = from_;
       txs = list [
@@ -108,13 +108,13 @@ function transfer_fa2(
   );
 
 function transfer_asset(
-  const asset           : asset_descriptor_t;
+  const asset           : asset_t;
   const from_           : address;
   const to_             : address;
   const amt             : nat)
                         : operation is
   case asset of [
-  | Tez(_) -> Tezos.transaction(
+  | Tez(_)     -> Tezos.transaction(
       unit,
       amt * 1mutez,
       unwrap(
@@ -122,5 +122,5 @@ function transfer_asset(
         Coinflip.no_such_account
       )
     )
-  | FA2(token) -> transfer_fa2(from_, to_, amt, token.address, token.id)
+  | Fa2(token) -> transfer_fa2(from_, to_, amt, token.address, token.id)
   ]

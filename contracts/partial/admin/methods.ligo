@@ -1,6 +1,6 @@
 #include "../constants.ligo"
 #include "../types.ligo"
-#include "../utils.ligo"
+#include "../helpers.ligo"
 
 function set_admin(
   const params          : address;
@@ -9,7 +9,7 @@ function set_admin(
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
     storage.admin := params;
-  } with (no_operations, storage);
+  } with (Constants.no_operations, storage);
 
 function set_server(
   const params          : address;
@@ -18,7 +18,7 @@ function set_server(
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
     storage.server := params;
-  } with (no_operations, storage);
+  } with (Constants.no_operations, storage);
 
 function set_payout_quotient(
   const params          : set_asset_value_t;
@@ -26,11 +26,14 @@ function set_payout_quotient(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    assert_valid_payout(params.value);
-    var asset : asset_t := unwrap_asset(params.asset_id, storage.id_to_asset);
-    asset.payout_quotient := params.value;
-    storage.id_to_asset[params.asset_id] := asset;
-  } with (no_operations, storage);
+    assert_valid_payout(params.value_f);
+    var asset_record : asset_record_t := unwrap_asset_record(
+      params.asset_id,
+      storage.id_to_asset
+    );
+    asset_record.payout_quot_f := params.value_f;
+    storage.id_to_asset[params.asset_id] := asset_record;
+  } with (Constants.no_operations, storage);
 
 function set_max_bet(
   const params          : set_asset_value_t;
@@ -38,11 +41,14 @@ function set_max_bet(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    assert_valid_max_bet(params.value);
-    var asset : asset_t := unwrap_asset(params.asset_id, storage.id_to_asset);
-    asset.max_bet_percentage := params.value;
-    storage.id_to_asset[params.asset_id] := asset;
-  } with (no_operations, storage);
+    assert_valid_max_bet(params.value_f);
+    var asset_record : asset_record_t := unwrap_asset_record(
+      params.asset_id,
+      storage.id_to_asset
+    );
+    asset_record.max_bet_percent_f := params.value_f;
+    storage.id_to_asset[params.asset_id] := asset_record;
+  } with (Constants.no_operations, storage);
 
 function set_network_fee(
   const new_fee         : tez;
@@ -51,7 +57,7 @@ function set_network_fee(
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
     storage.network_fee := new_fee;
-  } with (no_operations, storage);
+  } with (Constants.no_operations, storage);
 
 function add_asset(
   const params          : add_asset_t;
@@ -59,9 +65,9 @@ function add_asset(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    const asset : asset_descriptor_t = params.asset;
-    assert_valid_payout(params.payout_quotient);
-    assert_valid_max_bet(params.max_bet_percentage);
+    const asset : asset_t = params.asset;
+    assert_valid_payout(params.payout_quot_f);
+    assert_valid_max_bet(params.max_bet_percent_f);
     assert_valid_asset(asset, Coinflip.invalid_asset);
 
     const asset_key = Bytes.pack(asset);
@@ -72,13 +78,13 @@ function add_asset(
 
     storage.asset_to_id[asset_key] := storage.assets_counter;
     storage.id_to_asset[storage.assets_counter] := record [
-      descriptor         = asset;
-      payout_quotient    = params.payout_quotient;
-      bank               = 0n;
-      max_bet_percentage = params.max_bet_percentage;
+      asset             = asset;
+      payout_quot_f     = params.payout_quot_f;
+      bank              = 0n;
+      max_bet_percent_f = params.max_bet_percent_f;
     ];
     storage.assets_counter := storage.assets_counter + 1n;
-  } with (no_operations, storage);
+  } with (Constants.no_operations, storage);
 
 function add_asset_bank(
   const params          : bank_params_t;
@@ -86,22 +92,25 @@ function add_asset_bank(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    var operations : list(operation) := no_operations;
-    var asset : asset_t := unwrap_asset(params.asset_id, storage.id_to_asset);
-    const asset_descriptor : asset_descriptor_t = asset.descriptor;
+    var operations : list(operation) := Constants.no_operations;
+    var asset_record : asset_record_t := unwrap_asset_record(
+      params.asset_id,
+      storage.id_to_asset
+    );
+    const asset : asset_t = asset_record.asset;
     const amt : nat = params.amount;
-    case asset_descriptor of [
-    | FA2(_) -> block {
+    case asset of [
+    | Fa2(_) -> block {
       operations := list [
-        transfer_asset(asset_descriptor, Tezos.sender, Tezos.self_address, amt)
+        transfer_asset(asset, Tezos.sender, Tezos.self_address, amt)
       ];
     }
     | Tez(_) -> require(Tezos.amount = amt * 1mutez, Coinflip.invalid_amount)
     ];
     require(amt > 0n, Coinflip.zero_amount);
 
-    asset.bank := asset.bank + amt;
-    storage.id_to_asset[params.asset_id] := asset;
+    asset_record.bank := asset_record.bank + amt;
+    storage.id_to_asset[params.asset_id] := asset_record;
   } with (operations, storage);
 
 function remove_asset_bank(
@@ -110,17 +119,19 @@ function remove_asset_bank(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    var asset : asset_t := unwrap_asset(params.asset_id, storage.id_to_asset);
-    const asset_descriptor : asset_descriptor_t = asset.descriptor;
+    var asset_record : asset_record_t := unwrap_asset_record(
+      params.asset_id,
+      storage.id_to_asset
+    );
     const amt : nat = params.amount;
     const operations = list [
-      transfer_asset(asset_descriptor, Tezos.self_address, Tezos.sender, amt)
+      transfer_asset(asset_record.asset, Tezos.self_address, Tezos.sender, amt)
     ];
     require(amt > 0n, Coinflip.zero_amount);
-    require(amt <= asset.bank, Coinflip.amount_too_high);
+    require(amt <= asset_record.bank, Coinflip.amount_too_high);
 
-    asset.bank := abs(asset.bank - amt);
-    storage.id_to_asset[params.asset_id] := asset;
+    asset_record.bank := abs(asset_record.bank - amt);
+    storage.id_to_asset[params.asset_id] := asset_record;
   } with (operations, storage);
 
 function withdraw_network_fee(
