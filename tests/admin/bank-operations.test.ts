@@ -2,7 +2,7 @@ import { Coinflip } from '../coinflip';
 import { FA2 } from '../helpers/FA2';
 import {
   adminErrorTestcase,
-  aliceTestcaseWithBalancesDiff,
+  testcaseWithBalancesDiff,
   assertNumberValuesEquality,
   notAdminTestcase
 } from '../helpers';
@@ -101,14 +101,18 @@ send parameters isn't equal to amount from entrypoint parameters",
 
     it(
       'Should increase TEZ bank by specified amount',
-      async () => aliceTestcaseWithBalancesDiff(
+      async () => testcaseWithBalancesDiff(
         fa2Wrappers,
         coinflips,
         {
-          noFeesAliceTez: -defaultAddBankAmount,
-          aliceFA2: 0,
-          contractTez: defaultAddBankAmount,
-          contractFA2: 0
+          alice: {
+            tez: -defaultAddBankAmount,
+            fa2: 0
+          },
+          contract: {
+            tez: defaultAddBankAmount,
+            fa2: 0
+          }
         },
         async (coinflip) => coinflip.sendSingle(
           coinflip.addAssetBank(
@@ -117,8 +121,8 @@ send parameters isn't equal to amount from entrypoint parameters",
             defaultAddBankAmount
           )
         ),
-        (prevStorage) => {
-          const { storage: currentStorage } = coinflips.alice;
+        (prevStorage, userCoinflip) => {
+          const { storage: currentStorage } = userCoinflip;
           const { bank: prevBankFromStorage } = prevStorage.id_to_asset
             .get(tezAssetId);
           const { bank: newBankFromStorage } = currentStorage.id_to_asset
@@ -133,14 +137,18 @@ send parameters isn't equal to amount from entrypoint parameters",
 
     it(
       'Should increase FA2 token bank by specified amount',
-      async () => aliceTestcaseWithBalancesDiff(
+      async () => testcaseWithBalancesDiff(
         fa2Wrappers,
         coinflips,
         {
-          noFeesAliceTez: 0,
-          aliceFA2: -defaultAddBankAmount,
-          contractTez: 0,
-          contractFA2: defaultAddBankAmount
+          alice: {
+            tez: 0,
+            fa2: -defaultAddBankAmount
+          },
+          contract: {
+            tez: 0,
+            fa2: defaultAddBankAmount
+          }
         },
         async (coinflip, fa2) => coinflip.sendBatch([
           fa2.updateOperators([
@@ -154,8 +162,8 @@ send parameters isn't equal to amount from entrypoint parameters",
           ]),
           coinflip.addAssetBank(defaultFA2AssetId, defaultAddBankAmount)
         ]),
-        (prevStorage) => {
-          const { storage: currentStorage } = coinflips.alice;
+        (prevStorage, userCoinflip) => {
+          const { storage: currentStorage } = userCoinflip;
           const { bank: prevBankFromStorage } = prevStorage.id_to_asset
             .get(defaultFA2AssetId);
           const { bank: newBankFromStorage } = currentStorage.id_to_asset
@@ -230,20 +238,24 @@ greater than in bank",
           .alice
           .getBankAmount(tezAssetId)
           .minus(1);
-        await aliceTestcaseWithBalancesDiff(
+        await testcaseWithBalancesDiff(
           fa2Wrappers,
           coinflips,
           {
-            noFeesAliceTez: removeBankAmount,
-            aliceFA2: 0,
-            contractTez: removeBankAmount.times(-1),
-            contractFA2: 0
+            alice: {
+              tez: removeBankAmount,
+              fa2: 0
+            },
+            contract: {
+              tez: removeBankAmount.times(-1),
+              fa2: 0
+            }
           },
           async (coinflip) => coinflip.sendSingle(
             coinflip.removeAssetBank(tezAssetId, removeBankAmount)
           ),
-          (prevStorage) => {
-            const { storage: currentStorage } = coinflips.alice;
+          (prevStorage, userCoinflip) => {
+            const { storage: currentStorage } = userCoinflip;
             const { bank: prevBankFromStorage } = prevStorage.id_to_asset
               .get(tezAssetId);
             const { bank: newBankFromStorage } = currentStorage.id_to_asset
@@ -263,20 +275,24 @@ greater than in bank",
         const removeBankAmount = coinflips.alice.getBankAmount(
           defaultFA2AssetId
         );
-        await aliceTestcaseWithBalancesDiff(
+        await testcaseWithBalancesDiff(
           fa2Wrappers,
           coinflips,
           {
-            noFeesAliceTez: 0,
-            aliceFA2: removeBankAmount,
-            contractTez: 0,
-            contractFA2: removeBankAmount.times(-1)
+            alice: {
+              tez: 0,
+              fa2: removeBankAmount
+            },
+            contract: {
+              tez: 0,
+              fa2: removeBankAmount.times(-1)
+            }
           },
           async coinflip => coinflip.sendSingle(
             coinflip.removeAssetBank(defaultFA2AssetId, removeBankAmount)
           ),
-          (prevStorage) => {
-            const { storage: currentStorage } = coinflips.alice;
+          (prevStorage, userCoinflip) => {
+            const { storage: currentStorage } = userCoinflip;
             const { bank: prevBankFromStorage } = prevStorage.id_to_asset
               .get(defaultFA2AssetId);
             const { bank: newBankFromStorage } = currentStorage.id_to_asset
@@ -335,20 +351,24 @@ greater than in bank",
         const firstWithdrawalAmount = 100;
         const secondWithdrawalAmount = withdrawalTestNetworkBank - firstWithdrawalAmount;
 
-        await aliceTestcaseWithBalancesDiff(
+        await testcaseWithBalancesDiff(
           fa2Wrappers,
           coinflips,
           {
-            noFeesAliceTez: firstWithdrawalAmount,
-            aliceFA2: 0,
-            contractTez: -firstWithdrawalAmount,
-            contractFA2: 0
+            alice: {
+              tez: firstWithdrawalAmount,
+              fa2: 0
+            },
+            contract: {
+              tez: -firstWithdrawalAmount,
+              fa2: 0
+            }
           },
           async (coinflip) => coinflip.sendSingle(
             coinflip.withdrawNetworkFee(firstWithdrawalAmount)
           ),
-          (prevStorage) => {
-            const { storage: currentStorage } = coinflips.alice;
+          (prevStorage, userCoinflip) => {
+            const { storage: currentStorage } = userCoinflip;
             const { network_bank: prevBankFromStorage } = prevStorage;
             const { network_bank: newBankFromStorage } = currentStorage;
             assertNumberValuesEquality(
@@ -357,20 +377,24 @@ greater than in bank",
             );
           }
         );
-        await aliceTestcaseWithBalancesDiff(
+        await testcaseWithBalancesDiff(
           fa2Wrappers,
           coinflips,
           {
-            noFeesAliceTez: secondWithdrawalAmount,
-            aliceFA2: 0,
-            contractTez: -secondWithdrawalAmount,
-            contractFA2: 0
+            alice: {
+              tez: secondWithdrawalAmount,
+              fa2: 0
+            },
+            contract: {
+              tez: -secondWithdrawalAmount,
+              fa2: 0
+            }
           },
           async (coinflip) => coinflip.sendSingle(
             coinflip.withdrawNetworkFee(secondWithdrawalAmount)
           ),
-          (prevStorage) => {
-            const { storage: currentStorage } = coinflips.alice;
+          (prevStorage, userCoinflip) => {
+            const { storage: currentStorage } = userCoinflip;
             const { network_bank: prevBankFromStorage } = prevStorage;
             const { network_bank: newBankFromStorage } = currentStorage;
             assertNumberValuesEquality(

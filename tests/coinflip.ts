@@ -40,7 +40,8 @@ interface FA2TokenAsset {
 export type Asset = TezAsset | FA2TokenAsset;
 
 export interface Game {
-  asset: Asset;
+  asset_id: BigNumber;
+  gamer: string;
   start: string;
   bid_size: BigNumber;
   bet_coin_side: CoinSide;
@@ -131,7 +132,8 @@ export class Coinflip {
       { address: string; id: BigNumber; amount: BigNumber }
     > = [];
     for (const game of storage.games.values()) {
-      const { asset, bid_size, status } = game;
+      const { asset_id, bid_size, status } = game;
+      const { asset } = storage.id_to_asset.get(asset_id.toFixed());
       if (!('started' in status)) {
         continue;
       }
@@ -365,5 +367,11 @@ export class Coinflip {
       ),
       sendParams: { mutez: true, amount: mutezAmount }
     };
+  }
+
+  reveal(
+    reveals: { game_id: BigNumber.Value, random_value: BigNumber.Value }[]
+  ) {
+    return this.contract.methods.reveal(reveals);
   }
 }

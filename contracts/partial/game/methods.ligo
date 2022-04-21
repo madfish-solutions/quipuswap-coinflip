@@ -1,6 +1,7 @@
 #include "../constants.ligo"
 #include "../types.ligo"
 #include "../helpers.ligo"
+#include "./types.ligo"
 
 [@inline] function get_expected_tez_amount(
   const asset           : asset_t;
@@ -47,7 +48,8 @@ function bet(
     ]
     ];
     storage.games[storage.games_counter] := record [
-      asset         = asset;
+      asset_id      = params.asset_id;
+      gamer         = Tezos.sender;
       start         = Tezos.now;
       bid_size      = params.bid_size;
       bet_coin_side = params.coin_side;
@@ -59,6 +61,73 @@ function bet(
 
 function reveal(
   const params          : reveal_params_t;
-  const storage         : storage_t)
+  var storage           : storage_t)
                         : return_t is
-  (Constants.no_operations, storage);
+  block {
+    require(Tezos.sender = storage.server, Coinflip.not_server);
+    require(List.length(params) > 0n, Coinflip.empty_list);
+
+    function process_reveals(
+      const acc         : reveal_acc_t;
+      const one_reveal  : one_reveal_t)
+                        : reveal_acc_t is
+      block {
+        var new_operations := acc.operations;
+        var new_games := acc.games;
+        var new_id_to_asset := acc.id_to_asset;
+        const game_id = one_reveal.game_id;
+        var game := unwrap_game(game_id, new_games);
+        require(game.status = Started, Coinflip.game_finished);
+        var asset_record : asset_record_t := unwrap_asset_record(
+          game.asset_id,
+          acc.id_to_asset
+        );
+        const truncated_random = one_reveal.random_value mod
+          Constants.max_random;
+        const should_pay_reward = case game.bet_coin_side of [
+        | Head(_) -> truncated_random < Constants.win_threshold
+        | Tail(_) -> truncated_random >= Constants.win_threshold
+        ];
+        if should_pay_reward
+        then {
+          game.status := Won;
+          const payout_size = game.bid_size * asset_record.payout_quot_f
+            / Constants.precision;
+          require(
+            asset_record.bank + game.bid_size >= payout_size,
+            Coinflip.cannot_pay
+          );
+          new_operations := transfer_asset(
+            asset_record.asset,
+            Tezos.self_address,
+            game.gamer,
+            payout_size
+          ) # acc.operations;
+          asset_record.bank := abs(
+            asset_record.bank + game.bid_size - payout_size
+          );
+        }
+        else {
+          game.status := Lost;
+          asset_record.bank := asset_record.bank + game.bid_size;
+        };
+        new_games[game_id] := game;
+        new_id_to_asset[game.asset_id] := asset_record;
+      } with record [
+        operations  = new_operations;
+        games       = new_games;
+        id_to_asset = new_id_to_asset
+      ];
+
+    const reveal_results : reveal_acc_t = List.fold(
+      process_reveals,
+      params,
+      record [
+        operations  = Constants.no_operations;
+        games       = storage.games;
+        id_to_asset = storage.id_to_asset
+      ]
+    );
+    storage.games := reveal_results.games;
+    storage.id_to_asset := reveal_results.id_to_asset;
+  } with (reveal_results.operations, storage);
