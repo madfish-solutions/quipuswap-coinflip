@@ -1,6 +1,7 @@
 #include "../constants.ligo"
 #include "../types.ligo"
 #include "../helpers.ligo"
+#include "./types.ligo"
 
 [@inline] function get_expected_tez_amount(
   const asset           : asset_t;
@@ -58,12 +59,6 @@ function bet(
     storage.network_bank := storage.network_bank + storage.network_fee;
   } with (operations, storage);
 
-type reveal_acc_t       is [@layout:comb] record [
-  operations              : list(operation);
-  games                   : big_map(nat, game_t);
-  id_to_asset             : big_map(nat, asset_record_t);
-]
-
 function reveal(
   const params          : reveal_params_t;
   var storage           : storage_t)
@@ -94,7 +89,7 @@ function reveal(
         | Tail(_) -> truncated_random >= Constants.win_threshold
         ];
         if should_pay_reward
-        then block {
+        then {
           game.status := Won;
           const payout_size = game.bid_size * asset_record.payout_quot_f
             / Constants.precision;
@@ -112,7 +107,7 @@ function reveal(
             asset_record.bank + game.bid_size - payout_size
           );
         }
-        else block {
+        else {
           game.status := Lost;
           asset_record.bank := asset_record.bank + game.bid_size;
         };
