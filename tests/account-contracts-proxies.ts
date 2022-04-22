@@ -109,9 +109,7 @@ export async function makeAllAssetsAddedCoinflip(
       [
         makeAssetRecord(TEZ_ASSET),
         makeAssetRecord(
-          { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
-          0,
-          true
+          { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } }
         )
       ]
     )

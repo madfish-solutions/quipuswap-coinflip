@@ -501,7 +501,7 @@ TEZ asset",
     );
   });
 
-  describe('Testing entrypoint: Set_paused', () => {
+  describe.skip('Testing entrypoint: Set_paused', () => {
     async function setPausedTestcase(newValues: Record<string, boolean>) {
       const coinflip = allAssetsAddedCoinflips.alice;
       await coinflip.sendBatch(
