@@ -501,7 +501,7 @@ TEZ asset",
     );
   });
 
-  describe.skip('Testing entrypoint: Set_paused', () => {
+  describe('Testing entrypoint: Set_paused', () => {
     async function setPausedTestcase(newValues: Record<string, boolean>) {
       const coinflip = allAssetsAddedCoinflips.alice;
       await coinflip.sendBatch(
@@ -549,7 +549,7 @@ tries to call the entrypoint',
       })
     );
 
-    it(
+    it.skip(
       "Should change 'paused' value if previous value is not equal to new one",
       async () => {
         await setPausedTestcase({
