@@ -47,7 +47,6 @@ describe('Coinflip reveal test', function () {
           .plus(58 * Math.floor(i / 2))
       })
     );
-    console.log(JSON.stringify(reveals));
 
     const gamesToPick = testGames.filter(
       (_game, index) => gamesIndices.includes(index)
