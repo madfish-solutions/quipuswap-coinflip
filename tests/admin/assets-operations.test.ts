@@ -541,12 +541,19 @@ tries to call the entrypoint',
       )
     );
 
-    it.skip(
+    it(
       "Should do nothing if previous 'paused' value is equal to new one",
-      async () => setPausedTestcase({
-        [tezAssetId]: false,
-        [defaultFA2AssetId]: true
-      })
+      async () => {
+        const coinflip = allAssetsAddedCoinflips.alice;
+        await coinflip.sendBatch([
+          coinflip.setPaused(tezAssetId, false),
+          coinflip.setPaused(defaultFA2AssetId, true)
+        ]);
+        await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
+        const { id_to_asset } = coinflip.storage;
+        assert.strictEqual(id_to_asset.get(tezAssetId)?.paused, false);
+        assert.strictEqual(id_to_asset.get(defaultFA2AssetId)?.paused, true);
+      }
     );
 
     it.skip(
