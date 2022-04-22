@@ -502,23 +502,6 @@ TEZ asset",
   });
 
   describe('Testing entrypoint: Set_paused', () => {
-    async function setPausedTestcase(newValues: Record<string, boolean>) {
-      const coinflip = allAssetsAddedCoinflips.alice;
-      await coinflip.sendBatch(
-        Object.entries(newValues).map(
-          ([assetId, newValue]) => coinflip.setPaused(assetId, newValue)
-        )
-      );
-      await coinflip.updateStorage({ id_to_asset: Object.keys(newValues) });
-      const { id_to_asset } = coinflip.storage;
-      Object.entries(newValues).forEach(
-        ([assetId, value]) => assert.strictEqual(
-          id_to_asset.get(assetId).paused,
-          value
-        )
-      );
-    }
-
     describe('Testing permissions control', () => {
       it(
         'Should fail with error if server account tries to call the entrypoint',
@@ -566,13 +549,17 @@ tries to call the entrypoint',
         ]);
         await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
         const { id_to_asset } = coinflip.storage;
-        assert.strictEqual(id_to_asset.get(tezAssetId)?.paused, true);
-        assert.strictEqual(id_to_asset.get(defaultFA2AssetId)?.paused, false);
+        assert.strictEqual(id_to_asset.get(tezAssetId).paused, true);
+        assert.strictEqual(id_to_asset.get(defaultFA2AssetId).paused, false);
 
-        /* await setPausedTestcase({
-          [tezAssetId]: false,
-          [defaultFA2AssetId]: true
-        }); */
+        await coinflip.sendBatch([
+          coinflip.setPaused(tezAssetId, false),
+          coinflip.setPaused(defaultFA2AssetId, true)
+        ]);
+        await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
+        const { id_to_asset: newIdToAsset } = coinflip.storage;
+        assert.strictEqual(newIdToAsset.get(tezAssetId).paused, true);
+        assert.strictEqual(newIdToAsset.get(defaultFA2AssetId).paused, false);
       }
     )
   });
