@@ -556,18 +556,23 @@ tries to call the entrypoint',
       }
     );
 
-    it.skip(
+    it(
       "Should change 'paused' value if previous value is not equal to new one",
       async () => {
-        await setPausedTestcase({
-          [tezAssetId]: true,
-          [defaultFA2AssetId]: false
-        });
+        const coinflip = allAssetsAddedCoinflips.alice;
+        await coinflip.sendBatch([
+          coinflip.setPaused(tezAssetId, true),
+          coinflip.setPaused(defaultFA2AssetId, false)
+        ]);
+        await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
+        const { id_to_asset } = coinflip.storage;
+        assert.strictEqual(id_to_asset.get(tezAssetId)?.paused, true);
+        assert.strictEqual(id_to_asset.get(defaultFA2AssetId)?.paused, false);
 
-        await setPausedTestcase({
+        /* await setPausedTestcase({
           [tezAssetId]: false,
           [defaultFA2AssetId]: true
-        });
+        }); */
       }
     )
   });
