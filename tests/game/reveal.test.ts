@@ -42,11 +42,12 @@ describe('Coinflip reveal test', function () {
     const reveals = gamesIndices.map(
       (gameIndex, i) => ({
         game_id: gameIndex,
-        random_value: new BigNumber(revealSide === 'head' ? 0 : 50)
-          .plus(i % 2 === 0 ? 0 : 49)
-          .plus(100 * Math.floor(i / 2))
+        random_value: new BigNumber(revealSide === 'head' ? 0 : 29)
+          .plus(i % 2 === 0 ? 0 : 28)
+          .plus(58 * Math.floor(i / 2))
       })
     );
+    console.log(JSON.stringify(reveals));
 
     const gamesToPick = testGames.filter(
       (_game, index) => gamesIndices.includes(index)
@@ -155,7 +156,7 @@ describe('Coinflip reveal test', function () {
     it(
       'Should fail with error if admin account tries to call the entrypoint',
       async () => notServerTestcase(
-        coinflips.alice.reveal([{ game_id: 2, random_value: 50 }])
+        coinflips.alice.reveal([{ game_id: 2, random_value: 28 }])
       )
     );
 
@@ -163,7 +164,7 @@ describe('Coinflip reveal test', function () {
       'Should fail with error if a non-server and non-admin account \
 tries to increase bank',
       async () => notServerTestcase(
-        coinflips.carol.reveal([{ game_id: 2, random_value: 50 }])
+        coinflips.carol.reveal([{ game_id: 2, random_value: 28 }])
       )
     );
   });
@@ -180,7 +181,7 @@ tries to increase bank',
       async () => serverErrorTestcase(
         coinflips,
         coinflip => coinflip.reveal([
-          { game_id: testGames.length, random_value: 50 }
+          { game_id: testGames.length, random_value: 28 }
         ]),
         'Coinflip/unknown-game'
       )
@@ -200,9 +201,9 @@ tries to increase bank',
       async () => serverErrorTestcase(
         coinflips,
         coinflip => coinflip.reveal([
-          { game_id: 0, random_value: 50 },
-          { game_id: 2, random_value: 50 },
-          { game_id: 4, random_value: 50 }
+          { game_id: 0, random_value: 28 },
+          { game_id: 2, random_value: 28 },
+          { game_id: 4, random_value: 28 }
         ]),
         'Coinflip/game-finished'
       )
@@ -213,9 +214,9 @@ tries to increase bank',
       async () => serverErrorTestcase(
         coinflips,
         coinflip => coinflip.reveal([
-          { game_id: 1, random_value: 50 },
-          { game_id: 2, random_value: 50 },
-          { game_id: 4, random_value: 50 }
+          { game_id: 1, random_value: 28 },
+          { game_id: 2, random_value: 28 },
+          { game_id: 4, random_value: 28 }
         ]),
         'Coinflip/game-finished'
       )
@@ -224,24 +225,24 @@ tries to increase bank',
 
   describe('Win cases', () => {
     it(
-      "Should make a game with bet for 'head' coin side won if random_value % 100 < 50",
+      "Should make a game with bet for 'head' coin side won if random_value % 58 < 29",
       async () => headTailTestcase('head', [2, 3, 4, 5])
     );
 
     it(
-      "Should make a game with bet for 'tail' coin side won if random_value % 100 >= 50",
+      "Should make a game with bet for 'tail' coin side won if random_value % 58 >= 29",
       async () => headTailTestcase('tail', [6, 7, 8, 9])
     );
   });
 
   describe('Lose cases', () => {
     it(
-      "Should make a game with bet for 'head' coin side lost if random_value % 100 >= 50",
+      "Should make a game with bet for 'head' coin side lost if random_value % 58 >= 29",
       async () => headTailTestcase('tail', [10, 11, 12, 13])
     );
 
     it(
-      "Should make a game with bet for 'tail' coin side lost if random_value % 100 < 50",
+      "Should make a game with bet for 'tail' coin side lost if random_value % 58 < 29",
       async () => headTailTestcase('head', [14, 15, 16, 17])
     );
   });
