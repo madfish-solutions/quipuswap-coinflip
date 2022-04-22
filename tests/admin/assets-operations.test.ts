@@ -541,7 +541,7 @@ tries to call the entrypoint',
       )
     );
 
-    it(
+    it.skip(
       "Should do nothing if previous 'paused' value is equal to new one",
       async () => setPausedTestcase({
         [tezAssetId]: false,
