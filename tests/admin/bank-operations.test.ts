@@ -10,7 +10,6 @@ import { alice } from '../../scripts/sandbox/accounts';
 import {
   defaultFA2AssetId,
   defaultFA2TokenId,
-  defaultUnknownAssetId,
   tezAssetId
 } from '../constants';
 import {
@@ -18,10 +17,9 @@ import {
   makeFA2,
 } from '../account-contracts-proxies';
 
-export const defaultAddBankAmount = 700;
-export const withdrawalTestNetworkBank = 2000;
-export const withdrawalTestTezBank = 5000;
-export const withdrawalTestFa2TokenBank = 1000;
+const defaultAddBankAmount = 700;
+const withdrawalTestNetworkBank = 2000;
+const unknownAssetId = '3';
 
 describe('Coinflip admin bank entrypoints test', function () {
   let fa2Wrappers: Record<string, FA2> = {};
@@ -77,7 +75,7 @@ FA2 token amount is zero",
         async () => adminErrorTestcase(
           coinflips,
           coinflip => coinflip.addAssetBank(
-            defaultUnknownAssetId,
+            unknownAssetId,
             defaultAddBankAmount
           ),
           'Coinflip/unknown-asset'
@@ -210,7 +208,7 @@ tries to increase bank',
         async () => adminErrorTestcase(
           coinflips,
           coinflip => coinflip.removeAssetBank(
-            defaultUnknownAssetId,
+            unknownAssetId,
             defaultAddBankAmount
           ),
           'Coinflip/unknown-asset'

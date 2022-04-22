@@ -53,6 +53,7 @@ export interface AssetRecord {
   payout_quot_f: BigNumber;
   bank: BigNumber;
   max_bet_percent_f: BigNumber;
+  paused: boolean;
 }
 
 export interface CoinflipStorage {
@@ -373,5 +374,9 @@ export class Coinflip {
     reveals: { game_id: BigNumber.Value, random_value: BigNumber.Value }[]
   ) {
     return this.contract.methods.reveal(reveals);
+  }
+
+  setPaused(assetId: BigNumber.Value, paused: boolean) {
+    return this.contract.methods.set_paused(assetId, paused);
   }
 }

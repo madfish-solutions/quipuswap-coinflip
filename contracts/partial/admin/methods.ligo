@@ -82,6 +82,7 @@ function add_asset(
       payout_quot_f     = params.payout_quot_f;
       bank              = 0n;
       max_bet_percent_f = params.max_bet_percent_f;
+      paused            = False;
     ];
     storage.assets_counter := storage.assets_counter + 1n;
   } with (Constants.no_operations, storage);
@@ -152,3 +153,17 @@ function withdraw_network_fee(
     ],
     storage
   );
+
+function set_paused(
+  const params          : set_paused_t;
+  var storage           : storage_t)
+                        : return_t is
+  block {
+    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    var asset_record : asset_record_t := unwrap_asset_record(
+      params.asset_id,
+      storage.id_to_asset
+    );
+    asset_record.paused := params.paused;
+    storage.id_to_asset[params.asset_id] := asset_record;
+  } with (Constants.no_operations, storage);

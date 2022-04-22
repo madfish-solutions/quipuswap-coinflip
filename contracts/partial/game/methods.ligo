@@ -23,6 +23,7 @@ function bet(
       params.asset_id,
       storage.id_to_asset
     );
+    require(not asset_record.paused, Coinflip.asset_paused);
     require(
       params.bid_size <= asset_record.max_bet_percent_f * asset_record.bank
         / Constants.precision,

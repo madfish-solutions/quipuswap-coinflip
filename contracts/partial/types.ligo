@@ -18,6 +18,7 @@ type asset_record_t     is [@layout:comb] record [
   payout_quot_f           : nat;
   bank                    : nat;
   max_bet_percent_f       : nat;
+  paused                  : bool;
 ]
 
 type game_status_t      is
@@ -77,6 +78,11 @@ type add_asset_t        is [@layout:comb] record [
   asset                   : asset_t;
 ]
 
+type set_paused_t       is [@layout:comb] record [
+  asset_id                : nat;
+  paused                  : bool;
+]
+
 type actions_t          is
 | Bet                     of bet_params_t
 | Reveal                  of reveal_params_t
@@ -89,6 +95,7 @@ type actions_t          is
 | Add_asset_bank          of bank_params_t
 | Remove_asset_bank       of bank_params_t
 | Withdraw_network_fee    of tez
+| Set_paused              of set_paused_t
 #if TEST
 | Do                      of unit
 #else

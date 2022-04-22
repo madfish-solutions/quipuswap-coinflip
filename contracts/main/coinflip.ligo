@@ -19,6 +19,7 @@ function main(
   | Add_asset_bank(params)       -> add_asset_bank(params, s)
   | Remove_asset_bank(params)    -> remove_asset_bank(params, s)
   | Withdraw_network_fee(params) -> withdraw_network_fee(params, s)
+  | Set_paused(params)           -> set_paused(params, s)
 #if TEST
   | _                            -> (Constants.no_operations, s)
 #else

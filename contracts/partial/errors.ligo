@@ -19,4 +19,5 @@ module Coinflip is {
   const unknown_game    : string = "Coinflip/unknown-game";
   const cannot_pay      : string = "Coinflip/cannot-pay";
   const game_finished   : string = "Coinflip/game-finished";
+  const asset_paused    : string = "Coinflip/asset-paused";
 }

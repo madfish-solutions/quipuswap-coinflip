@@ -51,11 +51,16 @@ const makeStorage = (
   ) as CoinflipStorage['games']
 });
 
-export const makeAssetRecord = (asset: Asset, bank: BigNumber.Value = 0) => ({
+export const makeAssetRecord = (
+  asset: Asset,
+  bank: BigNumber.Value = 0,
+  paused = false
+) => ({
   asset,
   payout_quot_f: defaultPayout,
   bank: new BigNumber(bank),
-  max_bet_percent_f: defaultMaxBetPercentage
+  max_bet_percent_f: defaultMaxBetPercentage,
+  paused
 });
 
 Tezos.setSignerProvider(signerAlice);
@@ -103,9 +108,11 @@ export async function makeAllAssetsAddedCoinflip(
     makeStorage(
       [
         makeAssetRecord(TEZ_ASSET),
-        makeAssetRecord({
-          fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) }
-        })
+        makeAssetRecord(
+          { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
+          0,
+          true
+        )
       ]
     )
   );
@@ -125,6 +132,11 @@ export async function makeAllAssetsWithBankCoinflip(
         makeAssetRecord(
           { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
           testFa2TokenBank
+        ),
+        makeAssetRecord(
+          { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId + 1) } },
+          0,
+          true
         )
       ],
       testNetworkBank
@@ -148,6 +160,11 @@ export async function makeAssetsWithGamesCoinflip(
         makeAssetRecord(
           { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
           testFa2TokenBank
+        ),
+        makeAssetRecord(
+          { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId + 1) } },
+          0,
+          true
         )
       ],
       testNetworkBank,
