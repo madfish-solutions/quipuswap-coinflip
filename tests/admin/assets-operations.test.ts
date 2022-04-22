@@ -42,7 +42,10 @@ describe('Coinflip admin assets entrypoints test', function () {
       }
     };
     emptyCoinflips = await makeEmptyCoinflip();
-    allAssetsAddedCoinflips = await makeAllAssetsAddedCoinflip(fa2TokenAddress, defaultFA2TokenId);
+    allAssetsAddedCoinflips = await makeAllAssetsAddedCoinflip(
+      fa2TokenAddress,
+      defaultFA2TokenId
+    );
   });
 
   describe('Testing entrypoint: Set_payout_quotient', () => {
@@ -300,7 +303,7 @@ greater than 100%",
         'Should fail with error if a non-server and non-admin account \
 tries to add asset',
         async () => notAdminTestcase(
-          emptyCoinflips.bob.addAsset(
+          emptyCoinflips.carol.addAsset(
             PRECISION.plus(1),
             1,
             TEZ_ASSET
@@ -490,10 +493,65 @@ TEZ asset",
             bank: new BigNumber(0),
             asset: testFA2TokenAsset,
             max_bet_percent_f: defaultMaxBetPercentage,
-            payout_quot_f: defaultPayout
+            payout_quot_f: defaultPayout,
+            paused: false
           }
         );
       }
     );
+  });
+
+  describe('Testing entrypoint: Set_paused', () => {
+    describe('Testing permissions control', () => {
+      it(
+        'Should fail with error if server account tries to call the entrypoint',
+        async () => notAdminTestcase(emptyCoinflips.bob.setPaused(1, true))
+      );
+  
+      it(
+        'Should fail with error if a non-server and non-admin account \
+tries to call the entrypoint',
+        async () => notAdminTestcase(emptyCoinflips.carol.setPaused(1, true))
+      );
+    });
+
+    it(
+      "Should fail with 'Coinflip/unknown-asset' error for unknown asset",
+      async () => adminErrorTestcase(
+        allAssetsAddedCoinflips,
+        coinflip => coinflip.setPaused(defaultUnknownAssetId, true),
+        'Coinflip/unknown-asset'
+      )
+    );
+
+    it(
+      "Should do nothing if previous 'paused' value is equal to new one",
+      async () => {
+        const coinflip = allAssetsAddedCoinflips.alice;
+        await coinflip.sendBatch([
+          coinflip.setPaused(tezAssetId, false),
+          coinflip.setPaused(defaultFA2AssetId, true)
+        ]);
+        await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
+        const { id_to_asset } = coinflip.storage;
+        assert.strictEqual(id_to_asset.get(tezAssetId)?.paused, false);
+        assert.strictEqual(id_to_asset.get(defaultFA2AssetId)?.paused, true);
+      }
+    );
+
+    it(
+      "Should change 'paused' value if previous value is not equal to new one",
+      async () => {
+        const coinflip = allAssetsAddedCoinflips.alice;
+        await coinflip.sendBatch([
+          coinflip.setPaused(tezAssetId, true),
+          coinflip.setPaused(defaultFA2AssetId, false)
+        ]);
+        await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
+        const { id_to_asset } = coinflip.storage;
+        assert.strictEqual(id_to_asset.get(tezAssetId).paused, true);
+        assert.strictEqual(id_to_asset.get(defaultFA2AssetId).paused, false);
+      }
+    )
   });
 });

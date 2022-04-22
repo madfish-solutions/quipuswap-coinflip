@@ -11,7 +11,6 @@ import { Coinflip } from "../coinflip";
 import {
   defaultFA2AssetId,
   defaultFA2TokenId,
-  defaultUnknownAssetId,
   testMaxFA2Bet,
   tezAssetId
 } from "../constants";
@@ -23,6 +22,7 @@ import {
 import { FA2 } from "../helpers/FA2";
 
 const defaultBetSize = 100;
+const unknownAssetId = '3';
 
 describe('Coinflip bet test', function () {
   let coinflips: Record<string, Coinflip> = {};
@@ -154,12 +154,25 @@ amount is greater than bid size + network fee",
       "Should fail with 'Coinflip/unknown-asset' error for unknown asset",
       async () => entrypointErrorTestcase(
         coinflips.alice.bet(
-          defaultUnknownAssetId,
+          unknownAssetId,
           defaultBetSize,
           { head: Symbol() },
           coinflips.alice.storage.network_fee.toNumber()
         ),
         'Coinflip/unknown-asset'
+      )
+    );
+
+    it(
+      "Should fail with 'Coinflip/asset-paused' error for paused asset",
+      async () => entrypointErrorTestcase(
+        coinflips.alice.bet(
+          2,
+          defaultBetSize,
+          { head: Symbol() },
+          coinflips.alice.storage.network_fee.toNumber()
+        ),
+        'Coinflip/asset-paused'
       )
     );
   });
