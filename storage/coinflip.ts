@@ -11,5 +11,6 @@ export default {
   network_fee: 100,
   asset_to_id: MichelsonMap.fromLiteral({}),
   id_to_asset: MichelsonMap.fromLiteral({}),
+  gamers_stats: MichelsonMap.fromLiteral({}),
   network_bank: 0
 };

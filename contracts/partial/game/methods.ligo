@@ -56,6 +56,18 @@ function bet(
       bet_coin_side = params.coin_side;
       status        = Started;
     ];
+    const gamer_stats_key = Bytes.pack(record [
+      address = Tezos.sender;
+      asset_id = params.asset_id;
+    ]);
+    var new_gamer_stats : gamer_stats_t := unwrap_or(
+      storage.gamers_stats[gamer_stats_key],
+      Constants.ini_gamer_stats
+    ) with record [
+      last_game_id = storage.games_counter;
+      games_count += 1n;
+    ];
+    storage.gamers_stats[gamer_stats_key] := new_gamer_stats;
     storage.games_counter := storage.games_counter + 1n;
     storage.network_bank := storage.network_bank + storage.network_fee;
   } with (operations, storage);
@@ -76,6 +88,7 @@ function reveal(
         var new_operations := acc.operations;
         var new_games := acc.games;
         var new_id_to_asset := acc.id_to_asset;
+        var new_gamers_stats := acc.gamers_stats;
         const game_id = one_reveal.game_id;
         var game := unwrap_game(game_id, new_games);
         require(game.status = Started, Coinflip.game_finished);
@@ -85,6 +98,14 @@ function reveal(
         );
         const truncated_random = one_reveal.random_value mod
           Constants.max_random;
+        const gamer_stats_key = Bytes.pack(record [
+          address = game.gamer;
+          asset_id = game.asset_id;
+        ]);
+        var new_gamer_stats : gamer_stats_t := unwrap_or(
+          new_gamers_stats[gamer_stats_key],
+          Constants.ini_gamer_stats
+        );
         const should_pay_reward = case game.bet_coin_side of [
         | Head(_) -> truncated_random < Constants.win_threshold
         | Tail(_) -> truncated_random >= Constants.win_threshold
@@ -98,6 +119,8 @@ function reveal(
             asset_record.bank + game.bid_size >= payout_size,
             Coinflip.cannot_pay
           );
+          new_gamer_stats.total_won_amt := new_gamer_stats.total_won_amt +
+            abs(payout_size - game.bid_size);
           new_operations := transfer_asset(
             asset_record.asset,
             Tezos.self_address,
@@ -111,24 +134,30 @@ function reveal(
         else {
           game.status := Lost;
           asset_record.bank := asset_record.bank + game.bid_size;
+          new_gamer_stats.total_lost_amt := new_gamer_stats.total_lost_amt +
+            game.bid_size;
         };
         new_games[game_id] := game;
         new_id_to_asset[game.asset_id] := asset_record;
+        new_gamers_stats[gamer_stats_key] := new_gamer_stats;
       } with record [
-        operations  = new_operations;
-        games       = new_games;
-        id_to_asset = new_id_to_asset
+        operations   = new_operations;
+        games        = new_games;
+        id_to_asset  = new_id_to_asset;
+        gamers_stats = new_gamers_stats;
       ];
 
     const reveal_results : reveal_acc_t = List.fold(
       process_reveals,
       params,
       record [
-        operations  = Constants.no_operations;
-        games       = storage.games;
-        id_to_asset = storage.id_to_asset
+        operations   = Constants.no_operations;
+        games        = storage.games;
+        id_to_asset  = storage.id_to_asset;
+        gamers_stats = storage.gamers_stats;
       ]
     );
     storage.games := reveal_results.games;
     storage.id_to_asset := reveal_results.id_to_asset;
+    storage.gamers_stats := reveal_results.gamers_stats;
   } with (reveal_results.operations, storage);

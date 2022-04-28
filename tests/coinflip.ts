@@ -56,19 +56,27 @@ export interface AssetRecord {
   paused: boolean;
 }
 
+export interface GamerStats {
+  last_game_id: BigNumber;
+  games_count: BigNumber;
+  total_won_amt: BigNumber;
+  total_lost_amt: BigNumber;
+}
+
 export interface CoinflipStorage {
   admin: string;
   server: string;
   games_counter: BigNumber,
-  games: MichelsonMap<string, Game>; // BigNumber
+  games: MichelsonMap<string, Game>;
   assets_counter: BigNumber;
   network_fee: BigNumber;
   asset_to_id: MichelsonMap<string, BigNumber>;
-  id_to_asset: MichelsonMap<string, AssetRecord>; // BigNumber
+  id_to_asset: MichelsonMap<string, AssetRecord>;
+  gamers_stats: MichelsonMap<string, GamerStats>;
   network_bank: BigNumber;
 }
 
-type BigMapName = 'games' | 'asset_to_id' | 'id_to_asset';
+type BigMapName = 'games' | 'asset_to_id' | 'id_to_asset' | 'gamers_stats';
 
 interface RawCoinflipStorage extends Omit<
   CoinflipStorage,
@@ -89,6 +97,14 @@ const assetSchema = new Schema({
     { prim: 'unit', annots: ['%tez'] }
   ],
   annots: ['%asset']
+});
+
+const addressAssetIdPairSchema = new Schema({
+  prim: 'pair',
+  args: [
+    { prim: 'address', annots: ['%address'] },
+    { prim: 'nat', annots: ['%asset_id'] }
+  ]
 });
 
 export const TEZ_ASSET = { tez: Symbol() };
@@ -209,12 +225,14 @@ export class Coinflip {
     const {
       games: oldGames,
       asset_to_id: oldAssetToId,
-      id_to_asset: oldIdToAsset
+      id_to_asset: oldIdToAsset,
+      gamers_stats: oldGamersStats
     } = this.storage;
     const michelsonMaps = {
       games: cloneMichelsonMap(oldGames),
       asset_to_id: cloneMichelsonMap(oldAssetToId),
-      id_to_asset: cloneMichelsonMap(oldIdToAsset)
+      id_to_asset: cloneMichelsonMap(oldIdToAsset),
+      gamers_stats: cloneMichelsonMap(oldGamersStats)
     };
     const rawStorage = await this.contract.storage<RawCoinflipStorage>();
     await Promise.all(
@@ -246,12 +264,21 @@ export class Coinflip {
     return sendSingle(this.tezos, payload);
   }
 
-  static getAssetKey(asset: Asset) {
-    const keyToEncode = replaceAddressesWithBytes(
-      assetSchema.Encode(asset)
-    );
+  static getPackedBytesKey<T>(data: T, schema: Schema) {
+    const keyToEncode = replaceAddressesWithBytes(schema.Encode(data));
 
     return packDataBytes(keyToEncode).bytes;
+  }
+
+  static getAssetKey(asset: Asset) {
+    return Coinflip.getPackedBytesKey(asset, assetSchema);
+  }
+
+  static getAccountAssetIdPairKey(address: string, asset_id: BigNumber) {
+    return Coinflip.getPackedBytesKey(
+      { address, asset_id },
+      addressAssetIdPairSchema
+    );
   }
 
   async updateAssetRecord(asset: Asset) {
