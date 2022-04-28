@@ -1,10 +1,8 @@
-import assert from 'assert';
-
 import { alice, bob, carol } from '../../scripts/sandbox/accounts';
 import { makeEmptyCoinflip } from '../account-contracts-proxies';
 import { Coinflip } from '../coinflip';
 import { defaultNetworkFee } from '../constants';
-import { assertNumberValuesEquality, notAdminTestcase } from '../helpers';
+import { expectNumberValuesEquality, notAdminTestcase } from '../helpers';
 
 describe('Coinflip admin other entrypoints test', function () {
   let coinflips: Record<string, Coinflip> = {};
@@ -37,12 +35,12 @@ to call the entrypoint',
         await coinflip.sendSingle(coinflip.setNetworkFee(0));
         await coinflip.updateStorage();
 
-        assertNumberValuesEquality(coinflip.storage.network_fee, 0);
+        expectNumberValuesEquality(coinflip.storage.network_fee, 0);
 
         await coinflip.sendSingle(coinflip.setNetworkFee(defaultNetworkFee));
         await coinflip.updateStorage();
 
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           coinflip.storage.network_fee,
           defaultNetworkFee
         );
@@ -66,11 +64,11 @@ to call the entrypoint',
       "Should set new admin",
       async () => {
         const { alice: aliceCoinflip, bob: bobCoinflip } = coinflips;
-        
+
         await aliceCoinflip.sendSingle(aliceCoinflip.setAdmin(bob.pkh));
         await aliceCoinflip.updateStorage();
 
-        assert(aliceCoinflip.storage.admin === bob.pkh);
+        expect(aliceCoinflip.storage.admin).toStrictEqual(bob.pkh);
 
         await bobCoinflip.sendSingle(bobCoinflip.setAdmin(alice.pkh));
       }
@@ -97,7 +95,7 @@ to call the entrypoint',
         await aliceCoinflip.sendSingle(aliceCoinflip.setServer(carol.pkh));
         await aliceCoinflip.updateStorage();
 
-        assert(aliceCoinflip.storage.server === carol.pkh);
+        expect(aliceCoinflip.storage.server).toEqual(carol.pkh);
 
         await aliceCoinflip.sendSingle(aliceCoinflip.setServer(bob.pkh));
       }

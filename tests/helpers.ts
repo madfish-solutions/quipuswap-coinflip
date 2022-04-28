@@ -19,7 +19,7 @@ import {
   MichelsonV1Expression,
   MichelsonV1ExpressionExtended
 } from '@taquito/rpc';
-import { strictEqual, rejects } from 'assert';
+import { rejects } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import { confirmOperation } from '../utils/confirmation';
@@ -164,15 +164,12 @@ export async function getTotalFee(
   );
 }
 
-export const assertNumberValuesEquality = (
+export const expectNumberValuesEquality = (
   actual: BigNumber.Value,
-  expected: BigNumber.Value,
-  message?: string | Error
+  expected: BigNumber.Value
 ) => {
-  strictEqual(
-    new BigNumber(actual).toFixed(),
-    new BigNumber(expected).toFixed(),
-    message
+  expect(new BigNumber(actual).toFixed()).toEqual(
+    new BigNumber(expected).toFixed()
   );
 }
 
@@ -317,21 +314,15 @@ export async function testcaseWithBalancesDiff(
       tez: expectedTezDiff,
       fa2: expectedFa2Diff
     } = expectedBalancesDiffs[alias];
-    assertNumberValuesEquality(
+    expectNumberValuesEquality(
       newFa2Balance.minus(prevFa2Balance),
-      expectedFa2Diff,
-      alias === CONTRACT_ALIAS
-        ? "Balance of FA2 token for contract doesn't match"
-        : `Balance of FA2 token for '${alias}' account doesn't match`
+      expectedFa2Diff
     );
-    assertNumberValuesEquality(
+    expectNumberValuesEquality(
       newTezBalance
         .minus(prevTezBalance)
         .plus(alias === userAlias ? totalFee : 0),
-      expectedTezDiff,
-      alias === CONTRACT_ALIAS
-        ? "Balance of TEZ for contract doesn't match"
-        : `Balance of TEZ for '${alias}' account doesn't match`
+      expectedTezDiff
     );
   });
 

@@ -1,4 +1,3 @@
-import assert, { deepEqual } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import accounts, { alice } from '../../scripts/sandbox/accounts';
@@ -17,7 +16,7 @@ import {
 } from "../constants";
 import {
   testcaseWithBalancesDiff,
-  assertNumberValuesEquality,
+  expectNumberValuesEquality,
   entrypointErrorTestcase
 } from '../helpers';
 import { FA2 } from "../helpers/FA2";
@@ -243,47 +242,41 @@ and increase network bank for TEZ bid',
             gamers_stats: gamersStats
           } = userCoinflip.storage;
           const currentTezBank = idToAsset.get(tezAssetId).bank;
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             prevTezBank,
             currentTezBank
           );
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             currentGamesCounter.minus(prevGamesCounter),
             1
           );
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             networkBank.minus(prevNetworkBank),
             networkFee
           );
           const newGame = games.get(prevGamesCounter.toFixed());
-          assert(newGame !== undefined);
+          expect(newGame).toBeDefined();
           const { bet_coin_side, status, ...restProps } = newGame;
-          deepEqual(
-            restProps,
-            {
-              asset_id: new BigNumber(tezAssetId),
-              gamer: alice.pkh,
-              start: expectedStart,
-              bid_size: new BigNumber(defaultBetSize)
-            }
-          );
-          assert('head' in bet_coin_side);
-          assert('started' in status);
+          expect(restProps).toEqual({
+            asset_id: new BigNumber(tezAssetId),
+            gamer: alice.pkh,
+            start: expectedStart,
+            bid_size: new BigNumber(defaultBetSize)
+          });
+          expect('head' in bet_coin_side).toEqual(true);
+          expect('started' in status).toEqual(true);
           const newGamerStats = gamersStats.get(
             Coinflip.getAccountAssetIdPairKey(alice.pkh, tezAssetId)
           );
           const prevGamerStats = prevGamersStats.get(
             Coinflip.getAccountAssetIdPairKey(alice.pkh, tezAssetId)
           );
-          deepEqual(
-            newGamerStats,
-            {
-              last_game_id: prevGamesCounter,
-              games_count: prevGamerStats.games_count.plus(1),
-              total_won_amt: prevGamerStats.total_won_amt,
-              total_lost_amt: prevGamerStats.total_lost_amt
-            }
-          );
+          expect(newGamerStats).toEqual({
+            last_game_id: prevGamesCounter,
+            games_count: prevGamerStats.games_count.plus(1),
+            total_won_amt: prevGamerStats.total_won_amt,
+            total_lost_amt: prevGamerStats.total_lost_amt
+          });
         }
       );
     }
@@ -337,15 +330,15 @@ increase network bank for TEZ token bid',
             gamers_stats: gamersStats
           } = userCoinflip.storage;
           const currentTezBank = idToAsset.get(tezAssetId).bank;
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             prevTezBank,
             currentTezBank
           );
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             currentGamesCounter.minus(prevGamesCounter),
             1
           );
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             networkBank.minus(prevNetworkBank),
             networkFee
           );
@@ -353,29 +346,23 @@ increase network bank for TEZ token bid',
           const newGamerStats = gamersStats.get(
             Coinflip.getAccountAssetIdPairKey(alice.pkh, tezAssetId)
           );
-          assert(newGame !== undefined);
-          assert(newGamerStats !== undefined);
+          expect(newGame).toBeDefined();
+          expect(newGamerStats).toBeDefined();
           const { bet_coin_side, status, ...restProps } = newGame;
-          deepEqual(
-            restProps,
-            {
-              asset_id: new BigNumber(tezAssetId),
-              gamer: alice.pkh,
-              start: expectedStart,
-              bid_size: new BigNumber(defaultBetSize)
-            }
-          );
-          assert('head' in bet_coin_side);
-          assert('started' in status);
-          deepEqual(
-            newGamerStats,
-            {
-              last_game_id: prevGamesCounter,
-              games_count: new BigNumber(1),
-              total_won_amt: new BigNumber(0),
-              total_lost_amt: new BigNumber(0)
-            }
-          );
+          expect(restProps).toEqual({
+            asset_id: new BigNumber(tezAssetId),
+            gamer: alice.pkh,
+            start: expectedStart,
+            bid_size: new BigNumber(defaultBetSize)
+          });
+          expect('head' in bet_coin_side).toEqual(true);
+          expect('started' in status).toEqual(true);
+          expect(newGamerStats).toEqual({
+            last_game_id: prevGamesCounter,
+            games_count: new BigNumber(1),
+            total_won_amt: new BigNumber(0),
+            total_lost_amt: new BigNumber(0)
+          });
         }
       );
     }
@@ -438,41 +425,35 @@ increase network bank, and take tokens for FA2 token bid',
             gamers_stats: gamersStats
           } = userCoinflip.storage;
           const currentFA2Bank = idToAsset.get(defaultFA2AssetId).bank;
-          assertNumberValuesEquality(prevFA2Bank, currentFA2Bank);
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(prevFA2Bank, currentFA2Bank);
+          expectNumberValuesEquality(
             currentGamesCounter.minus(prevGamesCounter),
             1
           );
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             networkBank.minus(prevNetworkBank),
             networkFee
           );
           const newGame = games.get(prevGamesCounter.toFixed());
-          assert(newGame !== undefined);
+          expect(newGame).toBeDefined();
           const { bet_coin_side, status, ...restProps } = newGame;
-          assert('tail' in bet_coin_side);
-          assert('started' in status);
-          deepEqual(
-            restProps,
-            {
-              asset_id: new BigNumber(defaultFA2AssetId),
-              gamer: alice.pkh,
-              start: expectedStart,
-              bid_size: new BigNumber(defaultBetSize)
-            }
-          );
+          expect('tail' in bet_coin_side).toEqual(true);
+          expect('started' in status).toEqual(true);
+          expect(restProps).toEqual({
+            asset_id: new BigNumber(defaultFA2AssetId),
+            gamer: alice.pkh,
+            start: expectedStart,
+            bid_size: new BigNumber(defaultBetSize)
+          });
           const newGamerStats = gamersStats.get(
             Coinflip.getAccountAssetIdPairKey(alice.pkh, defaultFA2AssetId)
           );
-          deepEqual(
-            newGamerStats,
-            {
-              last_game_id: prevGamesCounter,
-              games_count: new BigNumber(1),
-              total_won_amt: new BigNumber(0),
-              total_lost_amt: new BigNumber(0)
-            }
-          );
+          expect(newGamerStats).toEqual({
+            last_game_id: prevGamesCounter,
+            games_count: new BigNumber(1),
+            total_won_amt: new BigNumber(0),
+            total_lost_amt: new BigNumber(0)
+          });
         }
       )
     }

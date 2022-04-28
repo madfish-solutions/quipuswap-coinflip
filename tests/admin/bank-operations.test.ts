@@ -3,7 +3,7 @@ import { FA2 } from '../helpers/FA2';
 import {
   adminErrorTestcase,
   testcaseWithBalancesDiff,
-  assertNumberValuesEquality,
+  expectNumberValuesEquality,
   notAdminTestcase
 } from '../helpers';
 import { alice } from '../../scripts/sandbox/accounts';
@@ -125,7 +125,7 @@ send parameters isn't equal to amount from entrypoint parameters",
             .get(tezAssetId);
           const { bank: newBankFromStorage } = currentStorage.id_to_asset
             .get(tezAssetId);
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             newBankFromStorage.minus(prevBankFromStorage),
             defaultAddBankAmount
           );
@@ -166,7 +166,7 @@ send parameters isn't equal to amount from entrypoint parameters",
             .get(defaultFA2AssetId);
           const { bank: newBankFromStorage } = currentStorage.id_to_asset
             .get(defaultFA2AssetId);
-          assertNumberValuesEquality(
+          expectNumberValuesEquality(
             newBankFromStorage.minus(prevBankFromStorage),
             defaultAddBankAmount
           );
@@ -258,7 +258,7 @@ greater than in bank",
               .get(tezAssetId);
             const { bank: newBankFromStorage } = currentStorage.id_to_asset
               .get(tezAssetId);
-            assertNumberValuesEquality(
+            expectNumberValuesEquality(
               prevBankFromStorage.minus(newBankFromStorage),
               removeBankAmount
             );
@@ -295,7 +295,7 @@ greater than in bank",
               .get(defaultFA2AssetId);
             const { bank: newBankFromStorage } = currentStorage.id_to_asset
               .get(defaultFA2AssetId);
-            assertNumberValuesEquality(
+            expectNumberValuesEquality(
               prevBankFromStorage.minus(newBankFromStorage),
               removeBankAmount
             );
@@ -369,7 +369,7 @@ greater than in bank",
             const { storage: currentStorage } = userCoinflip;
             const { network_bank: prevBankFromStorage } = prevStorage;
             const { network_bank: newBankFromStorage } = currentStorage;
-            assertNumberValuesEquality(
+            expectNumberValuesEquality(
               prevBankFromStorage.minus(newBankFromStorage),
               firstWithdrawalAmount
             );
@@ -395,7 +395,7 @@ greater than in bank",
             const { storage: currentStorage } = userCoinflip;
             const { network_bank: prevBankFromStorage } = prevStorage;
             const { network_bank: newBankFromStorage } = currentStorage;
-            assertNumberValuesEquality(
+            expectNumberValuesEquality(
               prevBankFromStorage.minus(newBankFromStorage),
               secondWithdrawalAmount
             );

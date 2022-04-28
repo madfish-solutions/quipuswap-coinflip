@@ -1,4 +1,3 @@
-import assert, { deepEqual } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import accounts from '../../scripts/sandbox/accounts';
@@ -18,7 +17,7 @@ import {
 } from "../constants";
 import {
   testcaseWithBalancesDiff,
-  assertNumberValuesEquality,
+  expectNumberValuesEquality,
   notServerTestcase,
   serverErrorTestcase
 } from '../helpers';
@@ -127,21 +126,16 @@ describe('Coinflip reveal test', function () {
           id_to_asset: idToAsset,
           gamers_stats: gamersStats
         } = userCoinflip.storage;
-        const newGamesEntries: [string, Game][] = gamesKeys.map(
-          key => [key, games.get(key)]
-        );
-        newGamesEntries.forEach(([key, { status, bet_coin_side }]) => {
+        const newGames: Game[] = gamesKeys.map(key => games.get(key));
+        newGames.forEach(({ status, bet_coin_side }) => {
           const statusName = revealSide in bet_coin_side ? 'won' : 'lost';
-          assert(statusName in status, `Status for game ${key} doesn't match`);
+          expect(statusName in status).toEqual(true);
         });
-        deepEqual(
-          newGamesEntries.map(
-            ([,{ status, bet_coin_side, ...restProps }]) => restProps
-          ),
-          gamesToPick.map(
-            ({ status, bet_coin_side, ...restProps }) => restProps
-          )
-        );
+        expect(newGames.map(
+          ({ status, bet_coin_side, ...restProps }) => restProps
+        )).toEqual(gamesToPick.map(
+          ({ status, bet_coin_side, ...restProps }) => restProps
+        ));
         const actualStatsDiffs = Object.fromEntries(
           Object.keys(expectedStatsDiffs).map(
             accountAlias => [
@@ -176,13 +170,13 @@ describe('Coinflip reveal test', function () {
             ]
           )
         );
-        deepEqual(actualStatsDiffs, expectedStatsDiffs);
+        expect(actualStatsDiffs).toEqual(expectedStatsDiffs);
 
         const { bank: prevTezBank } = prevIdToAsset.get(tezAssetId);
         const { bank: prevFA2Bank } = prevIdToAsset.get(defaultFA2AssetId);
         const { bank: tezBank } = idToAsset.get(tezAssetId);
         const { bank: fa2Bank } = idToAsset.get(defaultFA2AssetId);
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           tezBank.minus(prevTezBank),
           gamesToPick
             .reduce(
@@ -202,7 +196,7 @@ describe('Coinflip reveal test', function () {
             new BigNumber(0)
           )
         );
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           fa2Bank.minus(prevFA2Bank),
           gamesToPick
             .reduce(
