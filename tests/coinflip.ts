@@ -274,7 +274,7 @@ export class Coinflip {
     return Coinflip.getPackedBytesKey(asset, assetSchema);
   }
 
-  static getAccountAssetIdPairKey(address: string, asset_id: BigNumber) {
+  static getAccountAssetIdPairKey(address: string, asset_id: BigNumber.Value) {
     return Coinflip.getPackedBytesKey(
       { address, asset_id },
       addressAssetIdPairSchema

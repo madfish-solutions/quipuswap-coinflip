@@ -7,7 +7,7 @@ import {
   makeAssetRecord,
   makeFA2
 } from "../account-contracts-proxies";
-import { Coinflip, TEZ_ASSET } from "../coinflip";
+import { Coinflip, Game, TEZ_ASSET } from "../coinflip";
 import {
   defaultFA2AssetId,
   defaultFA2TokenId,
@@ -38,6 +38,38 @@ describe('Coinflip reveal test', function () {
       carol: { tez: 0, fa2: 0 },
       contract: { tez: 0, fa2: 0 }
     };
+    const expectedStatsDiffs = {
+      alice: {
+        tez: {
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0)
+        },
+        fa2: {
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0)
+        }
+      },
+      bob: {
+        tez: {
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0)
+        },
+        fa2: {
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0)
+        }
+      },
+      carol: {
+        tez: {
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0)
+        },
+        fa2: {
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0)
+        }
+      },
+    }
 
     const reveals = gamesIndices.map(
       (gameIndex, i) => ({
@@ -53,16 +85,25 @@ describe('Coinflip reveal test', function () {
     );
     gamesToPick.forEach(
       ({ bet_coin_side, gamer, asset_id, bid_size }) => {
+        const key = asset_id.eq(tezAssetId) ? 'tez' : 'fa2';
+        const accountAlias = Object.keys(accounts).find(
+          alias => accounts[alias].pkh === gamer
+        );
+        const assetExpectedStatsDiffs = expectedStatsDiffs[accountAlias][key];
         if (revealSide in bet_coin_side) {
-          const accountAlias = Object.keys(accounts).find(
-            alias => accounts[alias].pkh === gamer
-          );
           const balanceDiff = bid_size.times(defaultPayout)
             .idiv(PRECISION)
             .toNumber();
-          const key = asset_id.eq(tezAssetId) ? 'tez' : 'fa2';
           expectedBalancesDiffs[accountAlias][key] += balanceDiff;
           expectedBalancesDiffs.contract[key] -= balanceDiff;
+          assetExpectedStatsDiffs.total_won_amt = assetExpectedStatsDiffs
+            .total_won_amt
+            .plus(balanceDiff)
+            .minus(bid_size);
+        } else {
+          assetExpectedStatsDiffs.total_lost_amt = assetExpectedStatsDiffs
+            .total_lost_amt
+            .plus(bid_size);
         }
       }
     );
@@ -73,27 +114,69 @@ describe('Coinflip reveal test', function () {
       expectedBalancesDiffs,
       (userCoinflip) => userCoinflip.sendSingle(userCoinflip.reveal(reveals)),
       async (prevStorage, userCoinflip) => {
-        const { id_to_asset: prevIdToAsset } = prevStorage;
+        const {
+          id_to_asset: prevIdToAsset,
+          gamers_stats: prevGamersStats
+        } = prevStorage;
         const gamesKeys = gamesIndices.map(x => x.toString());
         await userCoinflip.updateStorage({
           games: gamesKeys
         });
-        const { games, id_to_asset: idToAsset } = userCoinflip.storage;
-        const newGames = gamesKeys.map(key => games.get(key));
-        assert(newGames.every(({ status, bet_coin_side }) => {
+        const {
+          games,
+          id_to_asset: idToAsset,
+          gamers_stats: gamersStats
+        } = userCoinflip.storage;
+        const newGamesEntries: [string, Game][] = gamesKeys.map(
+          key => [key, games.get(key)]
+        );
+        newGamesEntries.forEach(([key, { status, bet_coin_side }]) => {
           const statusName = revealSide in bet_coin_side ? 'won' : 'lost';
-          return statusName in status;
-        }));
-        newGames.forEach(({ bet_coin_side: newBetCoinSide }, index) => {
-          const expectedSide = Object.keys(gamesToPick[index].bet_coin_side)[0];
-          return expectedSide in newBetCoinSide;
+          assert(statusName in status, `Status for game ${key} doesn't match`);
         });
         deepEqual(
-          newGames.map(({ status, bet_coin_side, ...restProps }) => restProps),
+          newGamesEntries.map(
+            ([,{ status, bet_coin_side, ...restProps }]) => restProps
+          ),
           gamesToPick.map(
             ({ status, bet_coin_side, ...restProps }) => restProps
           )
         );
+        const actualStatsDiffs = Object.fromEntries(
+          Object.keys(expectedStatsDiffs).map(
+            accountAlias => [
+              accountAlias,
+              Object.fromEntries(
+                ['tez', 'fa2'].map(assetName => {
+                  const assetId = assetName === 'tez'
+                    ? tezAssetId
+                    : defaultFA2AssetId;
+                  const statsKey = Coinflip.getAccountAssetIdPairKey(
+                    accounts[accountAlias].pkh,
+                    assetId
+                  );
+                  const {
+                    total_won_amt: prevTotalWonAmt,
+                    total_lost_amt: prevTotalLostAmt
+                  } = prevGamersStats.get(statsKey);
+                  const {
+                    total_won_amt: totalWonAmt,
+                    total_lost_amt: totalLostAmt
+                  } = gamersStats.get(statsKey);
+
+                  return [
+                    assetName,
+                    {
+                      total_won_amt: totalWonAmt.minus(prevTotalWonAmt),
+                      total_lost_amt: totalLostAmt.minus(prevTotalLostAmt)
+                    }
+                  ]
+                })
+              )
+            ]
+          )
+        );
+        deepEqual(actualStatsDiffs, expectedStatsDiffs);
 
         const { bank: prevTezBank } = prevIdToAsset.get(tezAssetId);
         const { bank: prevFA2Bank } = prevIdToAsset.get(defaultFA2AssetId);

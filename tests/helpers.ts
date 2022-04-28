@@ -11,7 +11,7 @@ import {
 import { MichelsonMapKey } from '@taquito/michelson-encoder';
 import {
   b58decode,
-  validateContractAddress,
+  validateAddress,
   ValidationResult
 } from '@taquito/utils';
 import {
@@ -40,21 +40,22 @@ export function replaceAddressesWithBytes(expr: MichelsonV1Expression) {
   if (expr instanceof Array) {
     return expr.map(value => replaceAddressesWithBytes(value));
   }
-  if ('string' in expr) {
-    if (validateContractAddress(expr.string) === ValidationResult.VALID) {
-      return { bytes: b58decode(expr.string) };
-    }
+  if (
+    'string' in expr &&
+    (validateAddress(expr.string) === ValidationResult.VALID)
+  ) {
+    return { bytes: b58decode(expr.string) };
   }
-  if ('int' in expr || 'bytes' in expr) {
+  if ('int' in expr || 'bytes' in expr || 'string' in expr) {
     return expr;
   }
 
   const extendedExpr = expr as MichelsonV1ExpressionExtended;
+  if ('args' in extendedExpr) {
+    extendedExpr.args = replaceAddressesWithBytes(extendedExpr.args); 
+  }
 
-  return {
-    ...extendedExpr,
-    args: extendedExpr.args && replaceAddressesWithBytes(extendedExpr.args)
-  };
+  return extendedExpr;
 }
 
 type ReturnPromiseValue<T> = T extends (...args: any[]) => Promise<infer U>
@@ -241,15 +242,25 @@ export async function testcaseWithBalancesDiff(
       ? coinflip.contractAddress
       : accounts[alias].pkh
   );
+  const gamersAliases = ownersAliases.filter(alias => alias !== CONTRACT_ALIAS);
+  const gamersAddresses = gamersAliases.map(alias => accounts[alias].pkh);
   await Promise.all([
     fa2.updateStorage({ account_info: ownersAddresses }),
-    ...ownersAliases
-      .filter(alias => alias !== CONTRACT_ALIAS)
-      .map(
-        alias => coinflips[alias].updateStorage({
-          id_to_asset: [tezAssetId, defaultFA2AssetId]
-        })
-      )
+    ...gamersAliases.map(
+      alias => coinflips[alias].updateStorage({
+        id_to_asset: [tezAssetId, defaultFA2AssetId],
+        gamers_stats: gamersAddresses
+          .map(
+            gamerAddress => [tezAssetId, defaultFA2AssetId].map(
+              assetId => Coinflip.getAccountAssetIdPairKey(
+                gamerAddress,
+                assetId
+              )
+            )
+          )
+          .flat()
+      })
+    )
   ]);
   const { storage: prevStorage } = coinflip;
   const oldBalances: UsersBalances = Object.fromEntries(
@@ -269,13 +280,21 @@ export async function testcaseWithBalancesDiff(
   const totalFee = await getTotalFee(await operation(coinflip, fa2));
   await Promise.all([
     fa2.updateStorage({ account_info: ownersAddresses }),
-    ...ownersAliases
-      .filter(alias => alias !== CONTRACT_ALIAS)
-      .map(
-        alias => coinflips[alias].updateStorage({
-          id_to_asset: [tezAssetId, defaultFA2AssetId]
-        })
-      )
+    ...gamersAliases.map(
+      alias => coinflips[alias].updateStorage({
+        id_to_asset: [tezAssetId, defaultFA2AssetId],
+        gamers_stats: gamersAddresses
+          .map(
+            gamerAddress => [tezAssetId, defaultFA2AssetId].map(
+              assetId => Coinflip.getAccountAssetIdPairKey(
+                gamerAddress,
+                assetId
+              )
+            )
+          )
+          .flat()
+      })
+    )
   ]);
   const newBalances: UsersBalances = Object.fromEntries(
     await Promise.all(ownersAliases.map(async (alias, index) => {

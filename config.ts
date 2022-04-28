@@ -29,6 +29,11 @@ export const config = {
           pkh: "tz1MnmtP4uAcgMpeZN6JtyziXeFqqwQG6yn6",
           sk: "edsk3Sb16jcx9KrgMDsbZDmKnuN11v4AbTtPBgBSBTqYftd8Cq3i1e",
           pk: "edpku9qEgcyfNNDK6EpMvu5SqXDqWRLuxdMxdyH12ivTUuB1KXfGP4",
+        },
+        david: {
+          pkh: "tz1gWAaAqpdoK1LJnGJzCV2MUhXkFbZa431p",
+          sk: "edsk4XaYkT75nDcx79fKBezg4bfVwVGTcg9kC2cUFS6pfooC18yhgo",
+          pk: "edpkuiuwPgiwKYhL4hHs4MRESmXEsqz7qWdGZCHyT7yapokSNqEpFK"
         }
       },
     },

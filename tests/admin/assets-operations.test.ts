@@ -33,19 +33,23 @@ describe('Coinflip admin assets entrypoints test', function () {
   let emptyCoinflips: Record<string, Coinflip> = {};
 
   beforeAll(async () => {
-    const fa2Wrappers = await makeFA2();
-    const fa2TokenAddress = fa2Wrappers.alice.contract.address;
-    testFA2TokenAsset = {
-      fa2: {
-        address: fa2TokenAddress,
-        id: new BigNumber(defaultFA2TokenId)
-      }
-    };
-    emptyCoinflips = await makeEmptyCoinflip();
-    allAssetsAddedCoinflips = await makeAllAssetsAddedCoinflip(
-      fa2TokenAddress,
-      defaultFA2TokenId
-    );
+    try {
+      const fa2Wrappers = await makeFA2();
+      const fa2TokenAddress = fa2Wrappers.alice.contract.address;
+      testFA2TokenAsset = {
+        fa2: {
+          address: fa2TokenAddress,
+          id: new BigNumber(defaultFA2TokenId)
+        }
+      };
+      emptyCoinflips = await makeEmptyCoinflip();
+      allAssetsAddedCoinflips = await makeAllAssetsAddedCoinflip(
+        fa2TokenAddress,
+        defaultFA2TokenId
+      );
+    } catch (e) {
+      console.error(e);
+    }
   });
 
   describe('Testing entrypoint: Set_payout_quotient', () => {

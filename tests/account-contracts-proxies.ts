@@ -9,6 +9,7 @@ import {
   Coinflip,
   CoinflipStorage,
   Game,
+  GamerStats,
   TEZ_ASSET
 } from './coinflip';
 import defaultStorage from './storage/coinflip';
@@ -21,7 +22,8 @@ import {
   testFa2TokenBank,
   testNetworkBank,
   defaultFA2TokenId,
-  testGames
+  testGames,
+  PRECISION
 } from './constants';
 
 const makeStorage = (
@@ -48,7 +50,41 @@ const makeStorage = (
   games_counter: new BigNumber(games.length),
   games: MichelsonMap.fromLiteral(
     Object.fromEntries(games.map((game, index) => [index.toString(), game]))
-  ) as CoinflipStorage['games']
+  ) as CoinflipStorage['games'],
+  gamers_stats: MichelsonMap.fromLiteral(
+    games.reduce<Record<string, GamerStats>>(
+      (statsPart, game, index) => {
+        const key = Coinflip.getAccountAssetIdPairKey(
+          game.gamer,
+          game.asset_id
+        );
+        const prevGamerStats = statsPart[key] ?? {
+          last_game_id: new BigNumber(0),
+          games_count: new BigNumber(0),
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0)
+        };
+        const { payout_quot_f } = assets[game.asset_id.toNumber()];
+        const won_amt = payout_quot_f
+          .times(game.bid_size)
+          .idiv(PRECISION)
+          .minus(game.bid_size);
+        statsPart[key] = {
+          last_game_id: new BigNumber(index),
+          games_count: prevGamerStats.games_count.plus(1),
+          total_won_amt: prevGamerStats.total_won_amt.plus(
+            'won' in game.status ? won_amt : 0
+          ),
+          total_lost_amt: prevGamerStats.total_lost_amt.plus(
+            'lost' in game.status ? game.bid_size : 0
+          )
+        };
+
+        return statsPart;
+      },
+      {}
+    )
+  ) as CoinflipStorage['gamers_stats']
 });
 
 export const makeAssetRecord = (
