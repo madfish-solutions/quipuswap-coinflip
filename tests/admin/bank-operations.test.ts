@@ -288,7 +288,8 @@ greater than in bank",
             }
           },
           async coinflip => coinflip.sendSingle(
-            coinflip.removeAssetBank(defaultFA2AssetId, removeBankAmount)
+            coinflip.removeAssetBank(defaultFA2AssetId, removeBankAmount),
+            true
           ),
           (prevStorage, userCoinflip) => {
             const { storage: currentStorage } = userCoinflip;
