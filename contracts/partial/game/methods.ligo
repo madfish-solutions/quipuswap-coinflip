@@ -19,7 +19,7 @@ function bet(
                         : return_t is
   block {
     require(params.bid_size > 0n, Coinflip.zero_amount);
-    const asset_record : asset_record_t = unwrap_asset_record(
+    var asset_record : asset_record_t := unwrap_asset_record(
       params.asset_id,
       storage.id_to_asset
     );
@@ -56,6 +56,8 @@ function bet(
       bet_coin_side = params.coin_side;
       status        = Started;
     ];
+    asset_record.games_count := asset_record.games_count + 1n;
+    storage.id_to_asset[params.asset_id] := asset_record;
     storage.games_counter := storage.games_counter + 1n;
     storage.network_bank := storage.network_bank + storage.network_fee;
   } with (operations, storage);
@@ -107,10 +109,15 @@ function reveal(
           asset_record.bank := abs(
             asset_record.bank + game.bid_size - payout_size
           );
+          asset_record.total_won_amt := abs(
+            asset_record.total_won_amt + payout_size - game.bid_size
+          );
         }
         else {
           game.status := Lost;
           asset_record.bank := asset_record.bank + game.bid_size;
+          asset_record.total_lost_amt :=
+            asset_record.total_lost_amt + game.bid_size;
         };
         new_games[game_id] := game;
         new_id_to_asset[game.asset_id] := asset_record;
