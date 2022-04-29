@@ -300,7 +300,9 @@ greater than in bank",
               prevBankFromStorage.minus(newBankFromStorage),
               removeBankAmount
             );
-          }
+          },
+          'alice',
+          true
         );
       }
     );

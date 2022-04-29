@@ -229,7 +229,8 @@ export async function testcaseWithBalancesDiff(
     prevStorage: CoinflipStorage,
     userCoinflip: Coinflip
   ) => void | Promise<void>,
-  userAlias = 'alice'
+  userAlias = 'alice',
+  shouldShowResults?: boolean
 ) {
   const fa2 = fa2Wrappers[userAlias];
   const coinflip = coinflips[userAlias];
@@ -274,7 +275,11 @@ export async function testcaseWithBalancesDiff(
     }))
   );
 
-  const totalFee = await getTotalFee(await operation(coinflip, fa2));
+  const op = await operation(coinflip, fa2);
+  const totalFee = await getTotalFee(op);
+  if (shouldShowResults) {
+    console.log(JSON.stringify(op.operationResults), totalFee);
+  }
   await Promise.all([
     fa2.updateStorage({ account_info: ownersAddresses }),
     ...gamersAliases.map(
