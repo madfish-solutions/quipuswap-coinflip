@@ -8,6 +8,7 @@ describe('Coinflip admin other entrypoints test', function () {
   let coinflips: Record<string, Coinflip> = {};
 
   beforeAll(async () => {
+    console.log('other: beforeAll');
     coinflips = await makeEmptyCoinflip();
   });
 
@@ -100,5 +101,9 @@ to call the entrypoint',
         await aliceCoinflip.sendSingle(aliceCoinflip.setServer(bob.pkh));
       }
     );
+  });
+
+  afterAll(() => {
+    console.log('other: afterAll');
   });
 });

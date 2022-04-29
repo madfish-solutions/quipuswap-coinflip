@@ -307,24 +307,32 @@ export async function testcaseWithBalancesDiff(
     }))
   );
 
-  ownersAliases.forEach(alias => {
-    const { tez: prevTezBalance, fa2: prevFa2Balance } = oldBalances[alias];
-    const { tez: newTezBalance, fa2: newFa2Balance } = newBalances[alias];
-    const {
-      tez: expectedTezDiff,
-      fa2: expectedFa2Diff
-    } = expectedBalancesDiffs[alias];
-    expectNumberValuesEquality(
-      newFa2Balance.minus(prevFa2Balance),
-      expectedFa2Diff
-    );
-    expectNumberValuesEquality(
-      newTezBalance
-        .minus(prevTezBalance)
-        .plus(alias === userAlias ? totalFee : 0),
-      expectedTezDiff
-    );
-  });
+  const bigNumExpectedBalancesDiffs = Object.fromEntries(
+    Object.entries(expectedBalancesDiffs).map(
+      ([alias, { tez, fa2 }]) => [
+        alias,
+        { tez: new BigNumber(tez), fa2: new BigNumber(fa2) }
+      ]
+    )
+  );
+  const actualBalancesDiffs = Object.fromEntries(
+    ownersAliases.map(alias => {
+      const { tez: prevTezBalance, fa2: prevFa2Balance } = oldBalances[alias];
+      const { tez: newTezBalance, fa2: newFa2Balance } = newBalances[alias];
+
+      return [
+        alias,
+        {
+          tez: newTezBalance
+            .minus(prevTezBalance)
+            .plus(alias === userAlias ? totalFee : 0),
+          fa2: newFa2Balance.minus(prevFa2Balance)
+        }
+      ];
+    })
+  );
+
+  expect(actualBalancesDiffs).toEqual(bigNumExpectedBalancesDiffs);
 
   await otherAssertions(prevStorage, coinflip);
 }
