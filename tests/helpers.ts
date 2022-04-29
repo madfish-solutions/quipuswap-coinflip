@@ -68,15 +68,18 @@ export type BatchWalletOperation = ReturnPromiseValue<
 
 async function sendWithConfirmation(
   tezos: TezosToolkit,
-  batch: WalletOperationBatch
+  batch: WalletOperationBatch,
+  shouldUseTaquitoConfirm?: boolean
 ): Promise<BatchWalletOperation>;
 async function sendWithConfirmation(
   tezos: TezosToolkit,
   payload: BatchContentsEntry,
+  shouldUseTaquitoConfirm?: boolean
 ): Promise<TransactionOperation>;
 async function sendWithConfirmation(
   tezos: TezosToolkit,
   batchOrPayload: WalletOperationBatch | BatchContentsEntry,
+  shouldUseTaquitoConfirm?: boolean
 ) {
   let op: TransactionOperation | BatchWalletOperation;
   if ('method' in batchOrPayload) {
@@ -85,10 +88,14 @@ async function sendWithConfirmation(
     op = await batchOrPayload.send();
   }
 
-  await confirmOperation(
-    tezos,
-    op instanceof TransactionOperation ? op.hash : op.opHash
-  );
+  if (shouldUseTaquitoConfirm) {
+    await op.confirmation();
+  } else {
+    await confirmOperation(
+      tezos,
+      op instanceof TransactionOperation ? op.hash : op.opHash
+    );
+  }
 
   return op;
 }
@@ -115,9 +122,10 @@ export async function sendBatch(
 
 export async function sendSingle(
   tezos: TezosToolkit,
-  payload: BatchContentsEntry
+  payload: BatchContentsEntry,
+  shouldUseTaquitoConfirm?: boolean
 ) {
-  return sendWithConfirmation(tezos, payload);
+  return sendWithConfirmation(tezos, payload, shouldUseTaquitoConfirm);
 }
 
 export function cloneMichelsonMap<Key extends MichelsonMapKey, Value>(
