@@ -33,7 +33,7 @@ export async function confirmOperation(
 
     const sync_from = fromBlockLevel ?? currentBlockLevel - 3;
 
-    for (let i = sync_from; i <= currentBlockLevel; i++) {
+    for (let i = sync_from; i < currentBlockLevel; i++) {
       const block: BlockResponse =
         i === currentBlockLevel
           ? currentBlock
