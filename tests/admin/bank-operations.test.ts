@@ -300,9 +300,7 @@ greater than in bank",
               prevBankFromStorage.minus(newBankFromStorage),
               removeBankAmount
             );
-          },
-          'alice',
-          true
+          }
         );
       }
     );
@@ -366,7 +364,8 @@ greater than in bank",
             }
           },
           async (coinflip) => coinflip.sendSingle(
-            coinflip.withdrawNetworkFee(firstWithdrawalAmount)
+            coinflip.withdrawNetworkFee(firstWithdrawalAmount),
+            true
           ),
           (prevStorage, userCoinflip) => {
             const { storage: currentStorage } = userCoinflip;
@@ -392,7 +391,8 @@ greater than in bank",
             }
           },
           async (coinflip) => coinflip.sendSingle(
-            coinflip.withdrawNetworkFee(secondWithdrawalAmount)
+            coinflip.withdrawNetworkFee(secondWithdrawalAmount),
+            true
           ),
           (prevStorage, userCoinflip) => {
             const { storage: currentStorage } = userCoinflip;

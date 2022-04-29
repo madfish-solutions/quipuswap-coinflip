@@ -111,7 +111,10 @@ describe('Coinflip reveal test', function () {
       fa2Wrappers,
       coinflips,
       expectedBalancesDiffs,
-      (userCoinflip) => userCoinflip.sendSingle(userCoinflip.reveal(reveals)),
+      (userCoinflip) => userCoinflip.sendSingle(
+        userCoinflip.reveal(reveals),
+        true
+      ),
       async (prevStorage, userCoinflip) => {
         const {
           id_to_asset: prevIdToAsset,
