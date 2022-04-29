@@ -26,7 +26,6 @@ import { confirmOperation } from '../utils/confirmation';
 import { Coinflip, CoinflipStorage } from './coinflip';
 import { FA2 } from './helpers/FA2';
 import accounts from '../scripts/sandbox/accounts';
-import { Tezos } from './utils/cli';
 import { defaultFA2AssetId, defaultFA2TokenId, tezAssetId } from './constants';
 
 export type BatchContentsEntry = 
@@ -68,18 +67,15 @@ export type BatchWalletOperation = ReturnPromiseValue<
 
 async function sendWithConfirmation(
   tezos: TezosToolkit,
-  batch: WalletOperationBatch,
-  shouldUseTaquitoConfirm?: boolean
+  batch: WalletOperationBatch
 ): Promise<BatchWalletOperation>;
 async function sendWithConfirmation(
   tezos: TezosToolkit,
-  payload: BatchContentsEntry,
-  shouldUseTaquitoConfirm?: boolean
+  payload: BatchContentsEntry
 ): Promise<TransactionOperation>;
 async function sendWithConfirmation(
   tezos: TezosToolkit,
-  batchOrPayload: WalletOperationBatch | BatchContentsEntry,
-  shouldUseTaquitoConfirm?: boolean
+  batchOrPayload: WalletOperationBatch | BatchContentsEntry
 ) {
   let op: TransactionOperation | BatchWalletOperation;
   if ('method' in batchOrPayload) {
@@ -88,14 +84,10 @@ async function sendWithConfirmation(
     op = await batchOrPayload.send();
   }
 
-  if (shouldUseTaquitoConfirm) {
-    await op.confirmation();
-  } else {
-    await confirmOperation(
-      tezos,
-      op instanceof TransactionOperation ? op.hash : op.opHash
-    );
-  }
+  await confirmOperation(
+    tezos,
+    op instanceof TransactionOperation ? op.hash : op.opHash
+  );
 
   return op;
 }
@@ -123,9 +115,8 @@ export async function sendBatch(
 export async function sendSingle(
   tezos: TezosToolkit,
   payload: BatchContentsEntry,
-  shouldUseTaquitoConfirm?: boolean
 ) {
-  return sendWithConfirmation(tezos, payload, shouldUseTaquitoConfirm);
+  return sendWithConfirmation(tezos, payload);
 }
 
 export function cloneMichelsonMap<Key extends MichelsonMapKey, Value>(

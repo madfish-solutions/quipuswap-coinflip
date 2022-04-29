@@ -251,7 +251,6 @@ greater than in bank",
           },
           async (coinflip) => coinflip.sendSingle(
             coinflip.removeAssetBank(tezAssetId, removeBankAmount),
-            true
           ),
           (prevStorage, userCoinflip) => {
             const { storage: currentStorage } = userCoinflip;
@@ -288,8 +287,7 @@ greater than in bank",
             }
           },
           async coinflip => coinflip.sendSingle(
-            coinflip.removeAssetBank(defaultFA2AssetId, removeBankAmount),
-            true
+            coinflip.removeAssetBank(defaultFA2AssetId, removeBankAmount)
           ),
           (prevStorage, userCoinflip) => {
             const { storage: currentStorage } = userCoinflip;
@@ -365,8 +363,7 @@ greater than in bank",
             }
           },
           async (coinflip) => coinflip.sendSingle(
-            coinflip.withdrawNetworkFee(firstWithdrawalAmount),
-            true
+            coinflip.withdrawNetworkFee(firstWithdrawalAmount)
           ),
           (prevStorage, userCoinflip) => {
             const { storage: currentStorage } = userCoinflip;
@@ -392,8 +389,7 @@ greater than in bank",
             }
           },
           async (coinflip) => coinflip.sendSingle(
-            coinflip.withdrawNetworkFee(secondWithdrawalAmount),
-            true
+            coinflip.withdrawNetworkFee(secondWithdrawalAmount)
           ),
           (prevStorage, userCoinflip) => {
             const { storage: currentStorage } = userCoinflip;

@@ -260,11 +260,8 @@ export class Coinflip {
     return sendBatch(this.tezos, contents);
   }
 
-  async sendSingle(
-    payload: BatchContentsEntry,
-    shouldUseTaquitoConfirm?: boolean
-  ) {
-    return sendSingle(this.tezos, payload, shouldUseTaquitoConfirm);
+  async sendSingle(payload: BatchContentsEntry) {
+    return sendSingle(this.tezos, payload);
   }
 
   static getPackedBytesKey<T>(data: T, schema: Schema) {
