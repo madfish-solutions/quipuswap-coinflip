@@ -251,7 +251,8 @@ greater than in bank",
             }
           },
           async (coinflip) => coinflip.sendSingle(
-            coinflip.removeAssetBank(tezAssetId, removeBankAmount)
+            coinflip.removeAssetBank(tezAssetId, removeBankAmount),
+            true
           ),
           (prevStorage, userCoinflip) => {
             const { storage: currentStorage } = userCoinflip;
