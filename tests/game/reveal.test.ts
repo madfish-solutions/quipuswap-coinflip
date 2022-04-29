@@ -225,7 +225,6 @@ describe('Coinflip reveal test', function () {
   }
 
   beforeAll(async () => {
-    console.log('reveal: beforeAll');
     fa2Wrappers = await makeFA2();
     coinflips = await makeAssetsWithGamesCoinflip(
       fa2Wrappers.alice.contract.address
@@ -356,9 +355,5 @@ tries to increase bank',
         'Coinflip/cannot-pay'
       )
     );
-  });
-
-  afterAll(() => {
-    console.log('reveal: afterAll');
   });
 })

@@ -30,7 +30,6 @@ describe('Coinflip bet test', function () {
   let fa2Wrappers: Record<string, FA2> = {};
 
   beforeAll(async () => {
-    console.log('bet: beforeAll');
     fa2Wrappers = await makeFA2();
     coinflips = await makeAllAssetsWithBankCoinflip(
       fa2Wrappers.alice.contract.address
@@ -459,8 +458,4 @@ increase network bank, and take tokens for FA2 token bid',
       )
     }
   );
-
-  afterAll(() => {
-    console.log('bet: afterAll');
-  });
 });

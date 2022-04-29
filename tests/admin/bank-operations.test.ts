@@ -26,7 +26,6 @@ describe('Coinflip admin bank entrypoints test', function () {
   let coinflips: Record<string, Coinflip> = {};
 
   beforeAll(async () => {
-    console.log('bank-operations: beforeAll');
     fa2Wrappers = await makeFA2();
     coinflips = await makeAllAssetsWithBankCoinflip(
       fa2Wrappers.alice.contract.address
@@ -408,9 +407,5 @@ greater than in bank",
         );
       }
     );
-  });
-
-  afterAll(() => {
-    console.log('bank-operations: afterAll');
   });
 });

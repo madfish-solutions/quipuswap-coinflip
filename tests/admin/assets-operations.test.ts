@@ -32,7 +32,6 @@ describe('Coinflip admin assets entrypoints test', function () {
   let emptyCoinflips: Record<string, Coinflip> = {};
 
   beforeAll(async () => {
-    console.log('assets-operations: beforeAll');
     try {
       const fa2Wrappers = await makeFA2();
       const fa2TokenAddress = fa2Wrappers.alice.contract.address;
@@ -555,9 +554,5 @@ tries to call the entrypoint',
         expect(id_to_asset.get(defaultFA2AssetId).paused).toEqual(false);
       }
     );
-  });
-
-  afterAll(() => {
-    console.log('assets-operations: afterAll');
   });
 });
