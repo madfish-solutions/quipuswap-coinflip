@@ -18,7 +18,6 @@ import {
 } from "../constants";
 import {
   testcaseWithBalancesDiff,
-  expectNumberValuesEquality,
   notServerTestcase,
   serverErrorTestcase
 } from '../helpers';
