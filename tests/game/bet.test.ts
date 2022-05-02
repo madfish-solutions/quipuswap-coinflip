@@ -16,7 +16,7 @@ import {
 } from "../constants";
 import {
   testcaseWithBalancesDiff,
-  assertNumberValuesEquality,
+  expectNumberValuesEquality,
   entrypointErrorTestcase
 } from '../helpers';
 import { FA2 } from "../helpers/FA2";
@@ -27,6 +27,111 @@ const unknownAssetId = '3';
 describe('Coinflip bet test', function () {
   let coinflips: Record<string, Coinflip> = {};
   let fa2Wrappers: Record<string, FA2> = {};
+
+  async function successfulBetTestcase(
+    localCoinflips: Record<string, Coinflip>,
+    betSize: number,
+    assetId: string
+  ) {
+    const assetIsTez = assetId === tezAssetId;
+    const mutezAmount = (assetIsTez ? betSize : 0) +
+      localCoinflips.alice.storage.network_fee.toNumber();
+    await testcaseWithBalancesDiff(
+      fa2Wrappers,
+      localCoinflips,
+      {
+        alice: { tez: -mutezAmount, fa2: assetIsTez ? 0 : -betSize },
+        contract: { tez: mutezAmount, fa2: assetIsTez ? 0 : betSize }
+      },
+      (coinflip, fa2) => assetIsTez
+        ? coinflip.sendSingle(
+          coinflip.bet(
+            tezAssetId,
+            betSize,
+            { head: Symbol() },
+            mutezAmount
+          )
+        )
+        : coinflip.sendBatch([
+          fa2.updateOperators([
+            {
+              add_operator: {
+                token_id: defaultFA2TokenId,
+                owner: alice.pkh,
+                operator: coinflip.contractAddress
+              }
+            }
+          ]),
+          coinflip.bet(
+            assetId,
+            betSize,
+            { head: Symbol() },
+            mutezAmount
+          )
+        ]),
+      async (prevStorage, userCoinflip) => {
+        const blockHeader = await Tezos.rpc.getBlockHeader();
+        const expectedStart = new Date(blockHeader.timestamp).toISOString();
+        const {
+          games_counter: prevGamesCounter,
+          network_bank: prevNetworkBank,
+          id_to_asset: prevIdToAsset
+        } = prevStorage;
+        const {
+          bank: prevBank,
+          total_won_amt: prevTotalWonAmt,
+          total_lost_amt: prevTotalLostAmt,
+          games_count: prevAssetGamesCount
+        } = prevIdToAsset.get(assetId);
+        await userCoinflip.updateStorage({
+          games: [prevGamesCounter.toFixed()]
+        });
+        const {
+          games_counter: currentGamesCounter,
+          games,
+          network_bank: networkBank,
+          network_fee: networkFee,
+          id_to_asset: idToAsset,
+        } = userCoinflip.storage;
+        const {
+          bank: currentBank,
+          total_won_amt: totalWonAmt,
+          total_lost_amt: totalLostAmt,
+          games_count: assetGamesCount
+        } = idToAsset.get(assetId);
+        expect({
+          currentBank,
+          totalWonAmt,
+          totalLostAmt,
+          assetGamesCount
+        }).toEqual({
+          currentBank: prevBank,
+          totalWonAmt: prevTotalWonAmt,
+          totalLostAmt: prevTotalLostAmt,
+          assetGamesCount: prevAssetGamesCount.plus(1)
+        });
+        expectNumberValuesEquality(
+          currentGamesCounter.minus(prevGamesCounter),
+          1
+        );
+        expectNumberValuesEquality(
+          networkBank.minus(prevNetworkBank),
+          networkFee
+        );
+        const newGame = games.get(prevGamesCounter.toFixed());
+        expect(newGame).toBeDefined();
+        const { bet_coin_side, status, ...restGameProps } = newGame;
+        expect(restGameProps).toEqual({
+          asset_id: new BigNumber(assetId),
+          gamer: alice.pkh,
+          start: expectedStart,
+          bid_size: new BigNumber(betSize)
+        });
+        expect('head' in bet_coin_side).toEqual(true);
+        expect('started' in status).toEqual(true);
+      }
+    )
+  }
 
   beforeAll(async () => {
     fa2Wrappers = await makeFA2();
@@ -179,162 +284,19 @@ amount is greater than bid size + network fee",
 
   it(
     'Should make a new record for bid and increase network bank for TEZ bid',
-    async () => {
-      const mutezAmount = defaultBetSize +
-        coinflips.alice.storage.network_fee.toNumber();
-      await testcaseWithBalancesDiff(
-        fa2Wrappers,
-        coinflips,
-        {
-          alice: {
-            tez: -mutezAmount,
-            fa2: 0
-          },
-          contract: {
-            tez: mutezAmount,
-            fa2: 0
-          }
-        },
-        (coinflip) => coinflip.sendSingle(
-          coinflip.bet(
-            tezAssetId,
-            defaultBetSize,
-            { head: Symbol() },
-            mutezAmount
-          )
-        ),
-        async (prevStorage, userCoinflip) => {
-          const expectedStart = new Date(
-            (await Tezos.rpc.getBlockHeader()).timestamp
-          ).toISOString();
-          const {
-            games_counter: prevGamesCounter,
-            network_bank: prevNetworkBank,
-            id_to_asset: prevIdToAsset
-          } = prevStorage;
-          const prevTezBank = prevIdToAsset.get(tezAssetId).bank;
-          await userCoinflip.updateStorage(
-            { games: [prevGamesCounter.toFixed()] }
-          );
-          const {
-            games_counter: currentGamesCounter,
-            games,
-            network_bank: networkBank,
-            network_fee: networkFee,
-            id_to_asset: idToAsset
-          } = userCoinflip.storage;
-          const currentTezBank = idToAsset.get(tezAssetId).bank;
-          assertNumberValuesEquality(
-            prevTezBank,
-            currentTezBank
-          );
-          assertNumberValuesEquality(
-            currentGamesCounter.minus(prevGamesCounter),
-            1
-          );
-          assertNumberValuesEquality(
-            networkBank.minus(prevNetworkBank),
-            networkFee
-          );
-          const newGame = games.get(prevGamesCounter.toFixed());
-          assert(newGame !== undefined);
-          const { bet_coin_side, status, ...restProps } = newGame;
-          deepEqual(
-            restProps,
-            {
-              asset_id: new BigNumber(tezAssetId),
-              gamer: alice.pkh,
-              start: expectedStart,
-              bid_size: new BigNumber(defaultBetSize)
-            }
-          );
-          assert('head' in bet_coin_side);
-          assert('started' in status);
-        }
-      );
-    }
+    async () => successfulBetTestcase(
+      coinflips,
+      defaultBetSize,
+      tezAssetId
+    )
   );
 
   it(
     'Should make a new record, increase network bank, and take tokens for FA2 token bid',
-    async () => {
-      const mutezAmount = coinflips.alice.storage.network_fee.toNumber();
-      await testcaseWithBalancesDiff(
-        fa2Wrappers,
-        coinflips,
-        {
-          alice: {
-            tez: -mutezAmount,
-            fa2: -defaultBetSize
-          },
-          contract: {
-            tez: mutezAmount,
-            fa2: defaultBetSize
-          }
-        },
-        (coinflip, fa2) => coinflip.sendBatch([
-          fa2.updateOperators([
-            {
-              add_operator: {
-                token_id: defaultFA2TokenId,
-                owner: alice.pkh,
-                operator: coinflip.contractAddress
-              }
-            }
-          ]),
-          coinflip.bet(
-            defaultFA2AssetId,
-            defaultBetSize,
-            { tail: Symbol() },
-            mutezAmount
-          )
-        ]),
-        async (prevStorage, userCoinflip) => {
-          const expectedStart = new Date(
-            (await Tezos.rpc.getBlockHeader()).timestamp
-          ).toISOString();
-          const {
-            games_counter: prevGamesCounter,
-            network_bank: prevNetworkBank,
-            id_to_asset: prevIdToAsset
-          } = prevStorage;
-          const prevFA2Bank = prevIdToAsset.get(defaultFA2AssetId).bank;
-          await userCoinflip.updateStorage(
-            { games: [prevGamesCounter.toFixed()] }
-          );
-          const {
-            games_counter: currentGamesCounter,
-            games,
-            network_bank: networkBank,
-            network_fee: networkFee,
-            id_to_asset: idToAsset
-          } = userCoinflip.storage;
-          const currentFA2Bank = idToAsset.get(defaultFA2AssetId).bank;
-          assertNumberValuesEquality(prevFA2Bank, currentFA2Bank);
-          assertNumberValuesEquality(
-            currentGamesCounter.minus(prevGamesCounter),
-            1
-          );
-          assertNumberValuesEquality(
-            networkBank.minus(prevNetworkBank),
-            networkFee
-          );
-          const newGame = games.get(prevGamesCounter.toFixed());
-          assert(newGame !== undefined);
-          const { bet_coin_side, status, ...restProps } = newGame;
-          assert('tail' in bet_coin_side);
-          assert('started' in status);
-          deepEqual(
-            restProps,
-            {
-              asset_id: new BigNumber(defaultFA2AssetId),
-              gamer: alice.pkh,
-              start: expectedStart,
-              bid_size: new BigNumber(defaultBetSize)
-            }
-          );
-        }
-      )
-    }
+    async () => successfulBetTestcase(
+      coinflips,
+      defaultBetSize,
+      defaultFA2AssetId
+    )
   );
 });

@@ -21,7 +21,10 @@ import {
   testFa2TokenBank,
   testNetworkBank,
   defaultFA2TokenId,
-  testGames
+  testGames,
+  PRECISION,
+  tezAssetId,
+  defaultFA2AssetId
 } from './constants';
 
 const makeStorage = (
@@ -54,14 +57,35 @@ const makeStorage = (
 export const makeAssetRecord = (
   asset: Asset,
   bank: BigNumber.Value = 0,
-  paused = false
-) => ({
-  asset,
-  payout_quot_f: defaultPayout,
-  bank: new BigNumber(bank),
-  max_bet_percent_f: defaultMaxBetPercentage,
-  paused
-});
+  paused = false,
+  games: Game[] = []
+) => {
+  const { total_won_amt, total_lost_amt } = games.reduce(
+    (
+      { total_won_amt: prevTotalWonAmt, total_lost_amt: prevTotalLostAmt },
+      { bid_size, status }
+    ) => ({
+      total_won_amt: 'won' in status
+        ? prevTotalWonAmt.plus(defaultPayout.times(bid_size).idiv(PRECISION))
+        : prevTotalWonAmt,
+      total_lost_amt: 'lost' in status
+        ? prevTotalLostAmt.plus(bid_size)
+        : prevTotalLostAmt
+    }),
+    { total_won_amt: new BigNumber(0), total_lost_amt: new BigNumber(0) }
+  );
+
+  return {
+    asset,
+    payout_quot_f: defaultPayout,
+    bank: new BigNumber(bank),
+    max_bet_percent_f: defaultMaxBetPercentage,
+    total_won_amt,
+    total_lost_amt,
+    games_count: new BigNumber(games.length),
+    paused
+  };
+};
 
 Tezos.setSignerProvider(signerAlice);
 
@@ -156,10 +180,17 @@ export async function makeAssetsWithGamesCoinflip(
   return makeCoinflip(
     makeStorage(
       assetEntries ?? [
-        makeAssetRecord(TEZ_ASSET, testTezBank),
+        makeAssetRecord(
+          TEZ_ASSET,
+          testTezBank,
+          false,
+          games.filter(({ asset_id }) => asset_id.eq(tezAssetId))
+        ),
         makeAssetRecord(
           { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId) } },
-          testFa2TokenBank
+          testFa2TokenBank,
+          false,
+          games.filter(({ asset_id }) => asset_id.eq(defaultFA2AssetId))
         ),
         makeAssetRecord(
           { fa2: { address: fa2TokenAddress, id: new BigNumber(fa2TokenId + 1) } },

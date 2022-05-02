@@ -109,9 +109,8 @@ function reveal(
           asset_record.bank := abs(
             asset_record.bank + game.bid_size - payout_size
           );
-          asset_record.total_won_amt := abs(
-            asset_record.total_won_amt + payout_size - game.bid_size
-          );
+          asset_record.total_won_amt := asset_record.total_won_amt
+            + payout_size;
         }
         else {
           game.status := Lost;
