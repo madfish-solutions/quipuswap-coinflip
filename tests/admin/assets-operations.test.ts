@@ -48,6 +48,7 @@ describe('Coinflip admin assets entrypoints test', function () {
       );
     } catch (e) {
       console.error(e);
+      throw e;
     }
   });
 

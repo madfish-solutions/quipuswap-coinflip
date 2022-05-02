@@ -64,8 +64,9 @@ function bet(
       storage.gamers_stats[gamer_stats_key],
       Constants.ini_gamer_stats
     ) with record [
-      last_game_id = storage.games_counter;
-      games_count += 1n;
+      last_game_id    = storage.games_counter;
+      total_bets_amt += params.bid_size;
+      games_count    += 1n;
     ];
     storage.gamers_stats[gamer_stats_key] := new_gamer_stats;
     storage.games_counter := storage.games_counter + 1n;
@@ -120,7 +121,7 @@ function reveal(
             Coinflip.cannot_pay
           );
           new_gamer_stats.total_won_amt := new_gamer_stats.total_won_amt +
-            abs(payout_size - game.bid_size);
+            payout_size;
           new_operations := transfer_asset(
             asset_record.asset,
             Tezos.self_address,

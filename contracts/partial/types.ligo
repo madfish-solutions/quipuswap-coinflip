@@ -40,6 +40,7 @@ type gamer_stats_t      is [@layout:comb] record [
   games_count             : nat;
   total_won_amt           : nat;
   total_lost_amt          : nat;
+  total_bets_amt          : nat;
 ]
 
 type storage_t          is [@layout:comb] record [

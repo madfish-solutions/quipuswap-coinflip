@@ -97,8 +97,7 @@ describe('Coinflip reveal test', function () {
           expectedBalancesDiffs.contract[key] -= balanceDiff;
           assetExpectedStatsDiffs.total_won_amt = assetExpectedStatsDiffs
             .total_won_amt
-            .plus(balanceDiff)
-            .minus(bid_size);
+            .plus(balanceDiff);
         } else {
           assetExpectedStatsDiffs.total_lost_amt = assetExpectedStatsDiffs
             .total_lost_amt

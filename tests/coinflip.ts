@@ -61,6 +61,7 @@ export interface GamerStats {
   games_count: BigNumber;
   total_won_amt: BigNumber;
   total_lost_amt: BigNumber;
+  total_bets_amt: BigNumber;
 }
 
 export interface CoinflipStorage {

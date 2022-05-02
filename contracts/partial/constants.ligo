@@ -11,5 +11,6 @@ module Constants is {
     games_count    = 0n;
     total_won_amt  = 0n;
     total_lost_amt = 0n;
+    total_bets_amt = 0n;
   ];
 }

@@ -62,18 +62,19 @@ const makeStorage = (
           last_game_id: new BigNumber(0),
           games_count: new BigNumber(0),
           total_won_amt: new BigNumber(0),
-          total_lost_amt: new BigNumber(0)
+          total_lost_amt: new BigNumber(0),
+          total_bets_amt: new BigNumber(0)
         };
         const { payout_quot_f } = assets[game.asset_id.toNumber()];
-        const won_amt = payout_quot_f
-          .times(game.bid_size)
-          .idiv(PRECISION)
-          .minus(game.bid_size);
+        const won_amt = payout_quot_f.times(game.bid_size).idiv(PRECISION);
         statsPart[key] = {
           last_game_id: new BigNumber(index),
           games_count: prevGamerStats.games_count.plus(1),
           total_won_amt: prevGamerStats.total_won_amt.plus(
             'won' in game.status ? won_amt : 0
+          ),
+          total_bets_amt: prevGamerStats.total_bets_amt.plus(
+            game.bid_size
           ),
           total_lost_amt: prevGamerStats.total_lost_amt.plus(
             'lost' in game.status ? game.bid_size : 0

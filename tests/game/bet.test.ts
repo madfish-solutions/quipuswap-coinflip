@@ -124,14 +124,16 @@ describe('Coinflip bet test', function () {
             last_game_id: prevGamesCounter,
             games_count: new BigNumber(1),
             total_won_amt: new BigNumber(0),
-            total_lost_amt: new BigNumber(0)
+            total_lost_amt: new BigNumber(0),
+            total_bets_amt: new BigNumber(betSize)
           });          
         } else {
           expect(newGamerStats).toEqual({
             last_game_id: prevGamesCounter,
             games_count: prevGamerStats.games_count.plus(1),
             total_won_amt: prevGamerStats.total_won_amt,
-            total_lost_amt: prevGamerStats.total_lost_amt
+            total_lost_amt: prevGamerStats.total_lost_amt,
+            total_bets_amt: prevGamerStats.total_bets_amt.plus(betSize)
           });
         }
       }
