@@ -95,7 +95,7 @@ to call the entrypoint',
         await aliceCoinflip.sendSingle(aliceCoinflip.setServer(carol.pkh));
         await aliceCoinflip.updateStorage();
 
-        expect(aliceCoinflip.storage.server).toEqual(carol.pkh);
+        expect(aliceCoinflip.storage.server).toStrictEqual(carol.pkh);
 
         await aliceCoinflip.sendSingle(aliceCoinflip.setServer(bob.pkh));
       }

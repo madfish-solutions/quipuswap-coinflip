@@ -466,7 +466,18 @@ TEZ asset",
           prevAssetsCounter.plus(1)
         );
         expect(addedAsset).toBeTruthy();
-        expect('tez' in addedAsset.asset).toBeTruthy();
+        const { asset, ...restProps } = addedAsset;
+        expect('tez' in asset).toBeTruthy();
+        expect(restProps).toEqual({
+          bank: new BigNumber(0),
+          max_bet_percent_f: new BigNumber(1),
+          payout_quot_f: PRECISION.plus(1),
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0),
+          total_bets_amt: new BigNumber(0),
+          games_count: new BigNumber(0),
+          paused: false
+        });
       }
     );
 
@@ -497,6 +508,10 @@ TEZ asset",
           asset: testFA2TokenAsset,
           max_bet_percent_f: defaultMaxBetPercentage,
           payout_quot_f: defaultPayout,
+          total_won_amt: new BigNumber(0),
+          total_lost_amt: new BigNumber(0),
+          total_bets_amt: new BigNumber(0),
+          games_count: new BigNumber(0),
           paused: false
         });
       }

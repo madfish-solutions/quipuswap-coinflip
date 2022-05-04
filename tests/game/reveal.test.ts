@@ -1,6 +1,7 @@
 import BigNumber from 'bignumber.js';
 
 import accounts from '../../scripts/sandbox/accounts';
+import { getAccountAssetIdPairKey } from '../../utils/byte-keys';
 import {
   makeAssetsWithGamesCoinflip,
   makeAssetRecord,
@@ -17,7 +18,6 @@ import {
 } from "../constants";
 import {
   testcaseWithBalancesDiff,
-  expectNumberValuesEquality,
   notServerTestcase,
   serverErrorTestcase
 } from '../helpers';
@@ -37,7 +37,7 @@ describe('Coinflip reveal test', function () {
       carol: { tez: 0, fa2: 0 },
       contract: { tez: 0, fa2: 0 }
     };
-    const expectedStatsDiffs = {
+    const expectedGamersStatsDiffs = {
       alice: {
         tez: {
           total_won_amt: new BigNumber(0),
@@ -88,7 +88,7 @@ describe('Coinflip reveal test', function () {
         const accountAlias = Object.keys(accounts).find(
           alias => accounts[alias].pkh === gamer
         );
-        const assetExpectedStatsDiffs = expectedStatsDiffs[accountAlias][key];
+        const assetExpectedStatsDiffs = expectedGamersStatsDiffs[accountAlias][key];
         if (revealSide in bet_coin_side) {
           const balanceDiff = bid_size.times(defaultPayout)
             .idiv(PRECISION)
@@ -135,8 +135,8 @@ describe('Coinflip reveal test', function () {
         )).toEqual(gamesToPick.map(
           ({ status, bet_coin_side, ...restProps }) => restProps
         ));
-        const actualStatsDiffs = Object.fromEntries(
-          Object.keys(expectedStatsDiffs).map(
+        const actualGamersStatsDiffs = Object.fromEntries(
+          Object.keys(expectedGamersStatsDiffs).map(
             accountAlias => [
               accountAlias,
               Object.fromEntries(
@@ -144,7 +144,7 @@ describe('Coinflip reveal test', function () {
                   const assetId = assetName === 'tez'
                     ? tezAssetId
                     : defaultFA2AssetId;
-                  const statsKey = Coinflip.getAccountAssetIdPairKey(
+                  const statsKey = getAccountAssetIdPairKey(
                     accounts[accountAlias].pkh,
                     assetId
                   );
@@ -169,51 +169,59 @@ describe('Coinflip reveal test', function () {
             ]
           )
         );
-        expect(actualStatsDiffs).toEqual(expectedStatsDiffs);
+        expect(actualGamersStatsDiffs).toEqual(expectedGamersStatsDiffs);
 
-        const { bank: prevTezBank } = prevIdToAsset.get(tezAssetId);
-        const { bank: prevFA2Bank } = prevIdToAsset.get(defaultFA2AssetId);
-        const { bank: tezBank } = idToAsset.get(tezAssetId);
-        const { bank: fa2Bank } = idToAsset.get(defaultFA2AssetId);
-        expectNumberValuesEquality(
-          tezBank.minus(prevTezBank),
-          gamesToPick
-            .reduce(
-            (sum, { bet_coin_side, asset_id, bid_size }) => {
-              if (asset_id.toFixed() !== tezAssetId) {
-                return sum;
+        [tezAssetId, defaultFA2AssetId].forEach(
+          assetId => {
+            const {
+              bank: prevBank,
+              total_won_amt: prevTotalWonAmt,
+              total_lost_amt: prevTotalLostAmt,
+              total_bets_amt: prevTotalBetsAmt,
+              games_count: prevAssetGamesCount
+            } = prevIdToAsset.get(assetId);
+            const {
+              bank,
+              total_won_amt: totalWonAmt,
+              total_lost_amt: totalLostAmt,
+              total_bets_amt: totalBetsAmt,
+              games_count: assetGamesCount
+            } = idToAsset.get(assetId);
+            let expectedBank = new BigNumber(prevBank);
+            let expectedTotalWonAmt = new BigNumber(prevTotalWonAmt);
+            let expectedTotalLostAmt = new BigNumber(prevTotalLostAmt);
+            const assetGames = gamesToPick
+              .filter(({ asset_id }) => asset_id.eq(assetId));
+            assetGames.forEach(
+              ({ bet_coin_side, bid_size }) => {
+                const bankDiffIfWon = bid_size
+                  .times(defaultPayout)
+                  .idiv(PRECISION)
+                  .minus(bid_size);
+                if (revealSide in bet_coin_side) {
+                  expectedBank = expectedBank.minus(bankDiffIfWon);
+                  expectedTotalWonAmt = expectedTotalWonAmt
+                    .plus(bid_size).plus(bankDiffIfWon);
+                } else {
+                  expectedBank = expectedBank.plus(bid_size);
+                  expectedTotalLostAmt = expectedTotalLostAmt.plus(bid_size);
+                }
               }
-
-              return revealSide in bet_coin_side
-                ? sum.minus(
-                    bid_size
-                      .times(defaultPayout.minus(PRECISION))
-                      .idiv(PRECISION)
-                  )
-                : sum.plus(bid_size);
-            },
-            new BigNumber(0)
-          )
-        );
-        expectNumberValuesEquality(
-          fa2Bank.minus(prevFA2Bank),
-          gamesToPick
-            .reduce(
-            (sum, { bet_coin_side, asset_id, bid_size }) => {
-              if (asset_id.toFixed() !== defaultFA2AssetId) {
-                return sum;
-              }
-
-              return revealSide in bet_coin_side
-                ? sum.minus(
-                    bid_size
-                      .times(defaultPayout.minus(PRECISION))
-                      .idiv(PRECISION)
-                  )
-                : sum.plus(bid_size);
-            },
-            new BigNumber(0)
-          )
+            );
+            expect({
+              bank,
+              totalWonAmt,
+              totalLostAmt,
+              totalBetsAmt,
+              assetGamesCount,
+            }).toEqual({
+              bank: expectedBank,
+              totalWonAmt: expectedTotalWonAmt,
+              totalLostAmt: expectedTotalLostAmt,
+              totalBetsAmt: prevTotalBetsAmt,
+              assetGamesCount: prevAssetGamesCount
+            });
+          }
         );
       },
       'bob'

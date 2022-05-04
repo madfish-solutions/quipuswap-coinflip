@@ -1,6 +1,7 @@
 import BigNumber from 'bignumber.js';
 
 import accounts, { alice } from '../../scripts/sandbox/accounts';
+import { getAccountAssetIdPairKey } from '../../utils/byte-keys';
 import { Tezos } from '../../utils/helpers';
 import {
   makeAllAssetsWithBankCoinflip,
@@ -80,7 +81,13 @@ describe('Coinflip bet test', function () {
           id_to_asset: prevIdToAsset,
           gamers_stats: prevGamersStats
         } = prevStorage;
-        const prevBank = prevIdToAsset.get(assetId).bank;
+        const {
+          bank: prevBank,
+          total_won_amt: prevTotalWonAmt,
+          total_lost_amt: prevTotalLostAmt,
+          games_count: prevAssetGamesCount,
+          total_bets_amt: prevTotalBetsAmt
+        } = prevIdToAsset.get(assetId);
         await userCoinflip.updateStorage({
           games: [prevGamesCounter.toFixed()]
         });
@@ -92,8 +99,26 @@ describe('Coinflip bet test', function () {
           id_to_asset: idToAsset,
           gamers_stats: gamersStats
         } = userCoinflip.storage;
-        const currentBank = idToAsset.get(assetId).bank;
-        expectNumberValuesEquality(prevBank, currentBank);
+        const {
+          bank: currentBank,
+          total_won_amt: totalWonAmt,
+          total_lost_amt: totalLostAmt,
+          games_count: assetGamesCount,
+          total_bets_amt: totalBetsAmt
+        } = idToAsset.get(assetId);
+        expect({
+          currentBank,
+          totalWonAmt,
+          totalLostAmt,
+          assetGamesCount,
+          totalBetsAmt
+        }).toEqual({
+          currentBank: prevBank,
+          totalWonAmt: prevTotalWonAmt,
+          totalLostAmt: prevTotalLostAmt,
+          assetGamesCount: prevAssetGamesCount.plus(1),
+          totalBetsAmt: prevTotalBetsAmt.plus(betSize)
+        });
         expectNumberValuesEquality(
           currentGamesCounter.minus(prevGamesCounter),
           1
@@ -104,8 +129,8 @@ describe('Coinflip bet test', function () {
         );
         const newGame = games.get(prevGamesCounter.toFixed());
         expect(newGame).toBeDefined();
-        const { bet_coin_side, status, ...restProps } = newGame;
-        expect(restProps).toEqual({
+        const { bet_coin_side, status, ...restGameProps } = newGame;
+        expect(restGameProps).toEqual({
           asset_id: new BigNumber(assetId),
           gamer: alice.pkh,
           start: expectedStart,
@@ -114,10 +139,10 @@ describe('Coinflip bet test', function () {
         expect('head' in bet_coin_side).toEqual(true);
         expect('started' in status).toEqual(true);
         const newGamerStats = gamersStats.get(
-          Coinflip.getAccountAssetIdPairKey(alice.pkh, assetId)
+          getAccountAssetIdPairKey(alice.pkh, assetId)
         );
         const prevGamerStats = prevGamersStats.get(
-          Coinflip.getAccountAssetIdPairKey(alice.pkh, assetId)
+          getAccountAssetIdPairKey(alice.pkh, assetId)
         );
         if (shouldCreateGamerEntry) {
           expect(newGamerStats).toEqual({

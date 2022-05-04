@@ -9,16 +9,7 @@ import {
   SendParams
 } from '@taquito/taquito';
 import { MichelsonMapKey } from '@taquito/michelson-encoder';
-import {
-  b58decode,
-  validateAddress,
-  ValidationResult
-} from '@taquito/utils';
-import {
-  InternalOperationResult,
-  MichelsonV1Expression,
-  MichelsonV1ExpressionExtended,
-} from '@taquito/rpc';
+import { InternalOperationResult } from '@taquito/rpc';
 import { rejects } from 'assert';
 import BigNumber from 'bignumber.js';
 
@@ -27,6 +18,7 @@ import { Coinflip, CoinflipStorage } from './coinflip';
 import { FA2 } from './helpers/FA2';
 import accounts from '../scripts/sandbox/accounts';
 import { defaultFA2AssetId, defaultFA2TokenId, tezAssetId } from './constants';
+import { getAccountAssetIdPairKey } from '../utils/byte-keys';
 
 export type BatchContentsEntry = 
   | ContractMethod<ContractProvider>
@@ -34,28 +26,6 @@ export type BatchContentsEntry =
     method: ContractMethod<ContractProvider>;
     sendParams?: Partial<SendParams>
   };
-
-export function replaceAddressesWithBytes(expr: MichelsonV1Expression) {
-  if (expr instanceof Array) {
-    return expr.map(value => replaceAddressesWithBytes(value));
-  }
-  if (
-    'string' in expr &&
-    (validateAddress(expr.string) === ValidationResult.VALID)
-  ) {
-    return { bytes: b58decode(expr.string) };
-  }
-  if ('int' in expr || 'bytes' in expr || 'string' in expr) {
-    return expr;
-  }
-
-  const extendedExpr = expr as MichelsonV1ExpressionExtended;
-  if ('args' in extendedExpr) {
-    extendedExpr.args = replaceAddressesWithBytes(extendedExpr.args); 
-  }
-
-  return extendedExpr;
-}
 
 type ReturnPromiseValue<T> = T extends (...args: any[]) => Promise<infer U>
   ? U
@@ -178,7 +148,7 @@ export const expectNumberValuesEquality = (
   expect(new BigNumber(actual).toFixed()).toEqual(
     new BigNumber(expected).toFixed()
   );
-}
+};
 
 export const entrypointErrorTestcase = async (
   payload: BatchContentsEntry,
@@ -254,10 +224,7 @@ export async function testcaseWithBalancesDiff(
         gamers_stats: gamersAddresses
           .map(
             gamerAddress => [tezAssetId, defaultFA2AssetId].map(
-              assetId => Coinflip.getAccountAssetIdPairKey(
-                gamerAddress,
-                assetId
-              )
+              assetId => getAccountAssetIdPairKey(gamerAddress, assetId)
             )
           )
           .flat()
@@ -282,10 +249,7 @@ export async function testcaseWithBalancesDiff(
         gamers_stats: gamersAddresses
           .map(
             gamerAddress => [tezAssetId, defaultFA2AssetId].map(
-              assetId => Coinflip.getAccountAssetIdPairKey(
-                gamerAddress,
-                assetId
-              )
+              assetId => getAccountAssetIdPairKey(gamerAddress, assetId)
             )
           )
           .flat()
