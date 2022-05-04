@@ -35,6 +35,14 @@ type game_t             is [@layout:comb] record [
   status                  : game_status_t;
 ]
 
+type gamer_stats_t      is [@layout:comb] record [
+  last_game_id            : nat;
+  games_count             : nat;
+  total_won_amt           : nat;
+  total_lost_amt          : nat;
+  total_bets_amt          : nat;
+]
+
 type storage_t          is [@layout:comb] record [
 	admin                   : address;
 	server                  : address;
@@ -44,6 +52,7 @@ type storage_t          is [@layout:comb] record [
   network_fee             : tez;
   asset_to_id             : big_map(bytes, nat);
   id_to_asset             : big_map(nat, asset_record_t);
+  gamers_stats            : big_map(bytes, gamer_stats_t);
   network_bank            : tez;
 ]
 

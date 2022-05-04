@@ -1,10 +1,9 @@
-import assert from 'assert';
 import BigNumber from 'bignumber.js';
 
 import { Asset, Coinflip, TEZ_ASSET } from '../coinflip';
 import {
   adminErrorTestcase,
-  assertNumberValuesEquality,
+  expectNumberValuesEquality,
   notAdminTestcase
 } from '../helpers';
 import {
@@ -33,19 +32,24 @@ describe('Coinflip admin assets entrypoints test', function () {
   let emptyCoinflips: Record<string, Coinflip> = {};
 
   beforeAll(async () => {
-    const fa2Wrappers = await makeFA2();
-    const fa2TokenAddress = fa2Wrappers.alice.contract.address;
-    testFA2TokenAsset = {
-      fa2: {
-        address: fa2TokenAddress,
-        id: new BigNumber(defaultFA2TokenId)
-      }
-    };
-    emptyCoinflips = await makeEmptyCoinflip();
-    allAssetsAddedCoinflips = await makeAllAssetsAddedCoinflip(
-      fa2TokenAddress,
-      defaultFA2TokenId
-    );
+    try {
+      const fa2Wrappers = await makeFA2();
+      const fa2TokenAddress = fa2Wrappers.alice.contract.address;
+      testFA2TokenAsset = {
+        fa2: {
+          address: fa2TokenAddress,
+          id: new BigNumber(defaultFA2TokenId)
+        }
+      };
+      emptyCoinflips = await makeEmptyCoinflip();
+      allAssetsAddedCoinflips = await makeAllAssetsAddedCoinflip(
+        fa2TokenAddress,
+        defaultFA2TokenId
+      );
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   });
 
   describe('Testing entrypoint: Set_payout_quotient', () => {
@@ -138,14 +142,14 @@ greater than 2",
         await coinflip.updateAssetRecord(testFA2TokenAsset);
 
         const tezAsset = coinflip.getAssetRecord(TEZ_ASSET);
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           tezAsset.payout_quot_f,
           newTezPayoutQuotient
         );
         const testFA2Asset = coinflip.getAssetRecord(
           testFA2TokenAsset
         );
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           testFA2Asset.payout_quot_f,
           newFA2TokenPayoutQuotient
         );
@@ -256,14 +260,14 @@ greater than 100%",
         const tezAsset = coinflip.getAssetRecord(
           TEZ_ASSET
         );
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           tezAsset.max_bet_percent_f,
           newTezMaxBetPercentage
         );
         const testFA2Asset = coinflip.getAssetRecord(
           testFA2TokenAsset
         );
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           testFA2Asset.max_bet_percent_f,
           newFA2TokenMaxBetPercentage
         );
@@ -457,11 +461,12 @@ TEZ asset",
         await coinflip.updateAssetRecord(TEZ_ASSET);
 
         const addedAsset = coinflip.getAssetRecord(TEZ_ASSET);
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           coinflip.storage.assets_counter,
           prevAssetsCounter.plus(1)
         );
-        assert(addedAsset && ('tez' in addedAsset.asset));
+        expect(addedAsset).toBeTruthy();
+        expect('tez' in addedAsset.asset).toBeTruthy();
       }
     );
 
@@ -483,20 +488,17 @@ TEZ asset",
         const addedAsset = coinflip.getAssetRecord(
           testFA2TokenAsset
         );
-        assertNumberValuesEquality(
+        expectNumberValuesEquality(
           coinflip.storage.assets_counter,
           prevAssetsCounter.plus(1)
         );
-        assert.deepEqual(
-          addedAsset,
-          {
-            bank: new BigNumber(0),
-            asset: testFA2TokenAsset,
-            max_bet_percent_f: defaultMaxBetPercentage,
-            payout_quot_f: defaultPayout,
-            paused: false
-          }
-        );
+        expect(addedAsset).toEqual({
+          bank: new BigNumber(0),
+          asset: testFA2TokenAsset,
+          max_bet_percent_f: defaultMaxBetPercentage,
+          payout_quot_f: defaultPayout,
+          paused: false
+        });
       }
     );
   });
@@ -534,8 +536,8 @@ tries to call the entrypoint',
         ]);
         await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
         const { id_to_asset } = coinflip.storage;
-        assert.strictEqual(id_to_asset.get(tezAssetId)?.paused, false);
-        assert.strictEqual(id_to_asset.get(defaultFA2AssetId)?.paused, true);
+        expect(id_to_asset.get(tezAssetId)?.paused).toEqual(false);
+        expect(id_to_asset.get(defaultFA2AssetId)?.paused).toEqual(true);
       }
     );
 
@@ -549,9 +551,9 @@ tries to call the entrypoint',
         ]);
         await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
         const { id_to_asset } = coinflip.storage;
-        assert.strictEqual(id_to_asset.get(tezAssetId).paused, true);
-        assert.strictEqual(id_to_asset.get(defaultFA2AssetId).paused, false);
+        expect(id_to_asset.get(tezAssetId).paused).toEqual(true);
+        expect(id_to_asset.get(defaultFA2AssetId).paused).toEqual(false);
       }
-    )
+    );
   });
 });

@@ -17,6 +17,15 @@
   | None           -> failwith(error)
   ];
 
+[@inline] function unwrap_or<a>(
+  const param           : option(a);
+  const default         : a)
+                        : a is
+  case param of [
+  | Some(instance) -> instance
+  | None           -> default
+  ];
+
 [@inline] function nat_or_error(
   const value           : int;
   const err             : string)

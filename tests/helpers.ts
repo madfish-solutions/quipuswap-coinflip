@@ -11,22 +11,21 @@ import {
 import { MichelsonMapKey } from '@taquito/michelson-encoder';
 import {
   b58decode,
-  validateContractAddress,
+  validateAddress,
   ValidationResult
 } from '@taquito/utils';
 import {
-  METADATA_BALANCE_UPDATES_CATEGORY,
+  InternalOperationResult,
   MichelsonV1Expression,
-  MichelsonV1ExpressionExtended
+  MichelsonV1ExpressionExtended,
 } from '@taquito/rpc';
-import { strictEqual, rejects } from 'assert';
+import { rejects } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import { confirmOperation } from '../utils/confirmation';
 import { Coinflip, CoinflipStorage } from './coinflip';
 import { FA2 } from './helpers/FA2';
 import accounts from '../scripts/sandbox/accounts';
-import { Tezos } from './utils/cli';
 import { defaultFA2AssetId, defaultFA2TokenId, tezAssetId } from './constants';
 
 export type BatchContentsEntry = 
@@ -40,21 +39,22 @@ export function replaceAddressesWithBytes(expr: MichelsonV1Expression) {
   if (expr instanceof Array) {
     return expr.map(value => replaceAddressesWithBytes(value));
   }
-  if ('string' in expr) {
-    if (validateContractAddress(expr.string) === ValidationResult.VALID) {
-      return { bytes: b58decode(expr.string) };
-    }
+  if (
+    'string' in expr &&
+    (validateAddress(expr.string) === ValidationResult.VALID)
+  ) {
+    return { bytes: b58decode(expr.string) };
   }
-  if ('int' in expr || 'bytes' in expr) {
+  if ('int' in expr || 'bytes' in expr || 'string' in expr) {
     return expr;
   }
 
   const extendedExpr = expr as MichelsonV1ExpressionExtended;
+  if ('args' in extendedExpr) {
+    extendedExpr.args = replaceAddressesWithBytes(extendedExpr.args); 
+  }
 
-  return {
-    ...extendedExpr,
-    args: extendedExpr.args && replaceAddressesWithBytes(extendedExpr.args)
-  };
+  return extendedExpr;
 }
 
 type ReturnPromiseValue<T> = T extends (...args: any[]) => Promise<infer U>
@@ -71,11 +71,11 @@ async function sendWithConfirmation(
 ): Promise<BatchWalletOperation>;
 async function sendWithConfirmation(
   tezos: TezosToolkit,
-  payload: BatchContentsEntry,
+  payload: BatchContentsEntry
 ): Promise<TransactionOperation>;
 async function sendWithConfirmation(
   tezos: TezosToolkit,
-  batchOrPayload: WalletOperationBatch | BatchContentsEntry,
+  batchOrPayload: WalletOperationBatch | BatchContentsEntry
 ) {
   let op: TransactionOperation | BatchWalletOperation;
   if ('method' in batchOrPayload) {
@@ -114,7 +114,7 @@ export async function sendBatch(
 
 export async function sendSingle(
   tezos: TezosToolkit,
-  payload: BatchContentsEntry
+  payload: BatchContentsEntry,
 ) {
   return sendWithConfirmation(tezos, payload);
 }
@@ -129,49 +129,54 @@ export function cloneMichelsonMap<Key extends MichelsonMapKey, Value>(
   return result;
 }
 
-export async function getTotalFee(
+function addResultToTezBalancesDiffs(
+  diffs: Record<string, BigNumber>,
+  { amount, source, destination }: Pick<
+    InternalOperationResult,
+    'amount' | 'source' | 'destination'
+  >
+) {
+  diffs[source] = (diffs[source] ?? new BigNumber(0)).minus(amount ?? 0);
+  diffs[destination] = (diffs[destination] ?? new BigNumber(0))
+    .plus(amount ?? 0);
+}
+
+async function getTezBalancesDiffs(
   op: BatchWalletOperation | TransactionOperation
 ) {
   const operationResults = op instanceof TransactionOperation
     ? op.operationResults
     : await op.operationResults();
 
-  return operationResults.reduce(
-    (sum, result) => {
-      let resultFee = 0;
-      if ('metadata' in result &&
-        'operation_result' in result.metadata &&
-        'balance_updates' in result.metadata.operation_result) {
-        const { balance_updates } = result.metadata.operation_result;
-        resultFee += balance_updates
-          .filter(
-            ({ category }) =>
-              category === METADATA_BALANCE_UPDATES_CATEGORY.STORAGE_FEES
-          )
-          .reduce(
-            (storageFeeSum, { change }) => storageFeeSum + Number(change),
-            0
-          );
-      }
-      if ('fee' in result) {
-        resultFee += Number(result.fee);
+  return operationResults.reduce<Record<string, BigNumber>>(
+    (acc, result) => {
+      if ('amount' in result) {
+        addResultToTezBalancesDiffs(acc, result);
       }
 
-      return sum + resultFee;
+      if ('metadata' in result &&
+        'internal_operation_results' in result.metadata) {
+        const { internal_operation_results } = result.metadata;
+
+        internal_operation_results.forEach(
+          (result) => {
+            addResultToTezBalancesDiffs(acc, result);
+          }
+        )
+      }
+
+      return acc;
     },
-    0
+    {}
   );
 }
 
-export const assertNumberValuesEquality = (
+export const expectNumberValuesEquality = (
   actual: BigNumber.Value,
-  expected: BigNumber.Value,
-  message?: string | Error
+  expected: BigNumber.Value
 ) => {
-  strictEqual(
-    new BigNumber(actual).toFixed(),
-    new BigNumber(expected).toFixed(),
-    message
+  expect(new BigNumber(actual).toFixed()).toEqual(
+    new BigNumber(expected).toFixed()
   );
 }
 
@@ -216,8 +221,6 @@ export type ExpectedBalancesDiffs = Record<
   Record<'tez' | 'fa2', BigNumber.Value>
 >;
 
-type UsersBalances = Record<string, Record<'tez' | 'fa2', BigNumber>>;
-
 export const CONTRACT_ALIAS = 'contract';
 
 export async function testcaseWithBalancesDiff(
@@ -241,80 +244,89 @@ export async function testcaseWithBalancesDiff(
       ? coinflip.contractAddress
       : accounts[alias].pkh
   );
+  const gamersAliases = ownersAliases.filter(alias => alias !== CONTRACT_ALIAS);
+  const gamersAddresses = gamersAliases.map(alias => accounts[alias].pkh);
   await Promise.all([
     fa2.updateStorage({ account_info: ownersAddresses }),
-    ...ownersAliases
-      .filter(alias => alias !== CONTRACT_ALIAS)
-      .map(
-        alias => coinflips[alias].updateStorage({
-          id_to_asset: [tezAssetId, defaultFA2AssetId]
-        })
-      )
+    ...gamersAliases.map(
+      alias => coinflips[alias].updateStorage({
+        id_to_asset: [tezAssetId, defaultFA2AssetId],
+        gamers_stats: gamersAddresses
+          .map(
+            gamerAddress => [tezAssetId, defaultFA2AssetId].map(
+              assetId => Coinflip.getAccountAssetIdPairKey(
+                gamerAddress,
+                assetId
+              )
+            )
+          )
+          .flat()
+      })
+    )
   ]);
   const { storage: prevStorage } = coinflip;
-  const oldBalances: UsersBalances = Object.fromEntries(
-    await Promise.all(ownersAliases.map(async (alias, index) => {
-      const accountPkh = ownersAddresses[index];
-
-      return [
-        alias,
-        {
-          tez: await Tezos.tz.getBalance(accountPkh),
-          fa2: fa2.getTokenBalance(accountPkh, String(defaultFA2TokenId))
-        }
-      ];
-    }))
+  const oldFa2Balances: Record<string, BigNumber> = Object.fromEntries(
+    ownersAliases.map((alias, index) => [
+      alias,
+      fa2.getTokenBalance(ownersAddresses[index], String(defaultFA2TokenId))
+    ])
   );
 
-  const totalFee = await getTotalFee(await operation(coinflip, fa2));
+  const op = await operation(coinflip, fa2);
+
   await Promise.all([
     fa2.updateStorage({ account_info: ownersAddresses }),
-    ...ownersAliases
-      .filter(alias => alias !== CONTRACT_ALIAS)
-      .map(
-        alias => coinflips[alias].updateStorage({
-          id_to_asset: [tezAssetId, defaultFA2AssetId]
-        })
-      )
+    ...gamersAliases.map(
+      alias => coinflips[alias].updateStorage({
+        id_to_asset: [tezAssetId, defaultFA2AssetId],
+        gamers_stats: gamersAddresses
+          .map(
+            gamerAddress => [tezAssetId, defaultFA2AssetId].map(
+              assetId => Coinflip.getAccountAssetIdPairKey(
+                gamerAddress,
+                assetId
+              )
+            )
+          )
+          .flat()
+      })
+    )
   ]);
-  const newBalances: UsersBalances = Object.fromEntries(
-    await Promise.all(ownersAliases.map(async (alias, index) => {
-      const accountPkh = ownersAddresses[index];
+  const newFa2Balances: Record<string, BigNumber> = Object.fromEntries(
+    ownersAliases.map((alias, index) => [
+      alias,
+      fa2.getTokenBalance(ownersAddresses[index], String(defaultFA2TokenId))
+    ])
+  );
+  const actualTezBalancesDiffs = await getTezBalancesDiffs(op);
+
+  const bigNumExpectedBalancesDiffs = Object.fromEntries(
+    Object.entries(expectedBalancesDiffs).map(
+      ([alias, { tez, fa2 }]) => [
+        alias,
+        { tez: new BigNumber(tez), fa2: new BigNumber(fa2) }
+      ]
+    )
+  );
+  const actualBalancesDiffs = Object.fromEntries(
+    ownersAliases.map(alias => {
+      const prevFa2Balance = oldFa2Balances[alias];
+      const newFa2Balance = newFa2Balances[alias];
+      const pkh = alias === CONTRACT_ALIAS
+        ? coinflip.contractAddress
+        : accounts[alias].pkh;
 
       return [
         alias,
         {
-          tez: await Tezos.tz.getBalance(accountPkh),
-          fa2: fa2.getTokenBalance(accountPkh, String(defaultFA2TokenId))
+          tez: actualTezBalancesDiffs[pkh] ?? new BigNumber(0),
+          fa2: newFa2Balance.minus(prevFa2Balance)
         }
       ];
-    }))
+    })
   );
 
-  ownersAliases.forEach(alias => {
-    const { tez: prevTezBalance, fa2: prevFa2Balance } = oldBalances[alias];
-    const { tez: newTezBalance, fa2: newFa2Balance } = newBalances[alias];
-    const {
-      tez: expectedTezDiff,
-      fa2: expectedFa2Diff
-    } = expectedBalancesDiffs[alias];
-    assertNumberValuesEquality(
-      newFa2Balance.minus(prevFa2Balance),
-      expectedFa2Diff,
-      alias === CONTRACT_ALIAS
-        ? "Balance of FA2 token for contract doesn't match"
-        : `Balance of FA2 token for '${alias}' account doesn't match`
-    );
-    assertNumberValuesEquality(
-      newTezBalance
-        .minus(prevTezBalance)
-        .plus(alias === userAlias ? totalFee : 0),
-      expectedTezDiff,
-      alias === CONTRACT_ALIAS
-        ? "Balance of TEZ for contract doesn't match"
-        : `Balance of TEZ for '${alias}' account doesn't match`
-    );
-  });
+  expect(actualBalancesDiffs).toEqual(bigNumExpectedBalancesDiffs);
 
   await otherAssertions(prevStorage, coinflip);
 }
