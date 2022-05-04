@@ -1,4 +1,3 @@
-import { packDataBytes } from '@taquito/michel-codec';
 import {
   BigMapAbstraction,
   ContractAbstraction,
@@ -6,7 +5,6 @@ import {
   TezosToolkit,
   ContractProvider
 } from '@taquito/taquito';
-import { Schema } from '@taquito/michelson-encoder';
 import { BigNumber } from 'bignumber.js';
 
 import { michelson } from '../build/test_coinflip.json';
@@ -15,12 +13,12 @@ import { initTezos } from '../utils/helpers';
 import {
   BatchContentsEntry,
   cloneMichelsonMap,
-  replaceAddressesWithBytes,
   sendBatch,
   sendSingle
 } from './helpers';
 import defaultStorage from "./storage/coinflip";
 import { FA2 } from './helpers/FA2';
+import { getAssetKey } from '../utils/byte-keys';
 
 export type CoinSide = { head: Symbol } | { tail: Symbol };
 
@@ -87,30 +85,6 @@ interface RawCoinflipStorage extends Omit<
   CoinflipStorage,
   BigMapName
 >, Record<BigMapName, BigMapAbstraction> {}
-
-const assetSchema = new Schema({
-  prim: 'or',
-  args: [
-    {
-      prim: 'pair',
-      args: [
-        { prim: 'address', annots: ['%address'] },
-        { prim: 'nat', annots: ['%id'] }
-      ],
-      annots: ['%fa2']
-    },
-    { prim: 'unit', annots: ['%tez'] }
-  ],
-  annots: ['%asset']
-});
-
-const addressAssetIdPairSchema = new Schema({
-  prim: 'pair',
-  args: [
-    { prim: 'address', annots: ['%address'] },
-    { prim: 'nat', annots: ['%asset_id'] }
-  ]
-});
 
 export const TEZ_ASSET = { tez: Symbol() };
 
@@ -269,25 +243,8 @@ export class Coinflip {
     return sendSingle(this.tezos, payload);
   }
 
-  static getPackedBytesKey<T>(data: T, schema: Schema) {
-    const keyToEncode = replaceAddressesWithBytes(schema.Encode(data));
-
-    return packDataBytes(keyToEncode).bytes;
-  }
-
-  static getAssetKey(asset: Asset) {
-    return Coinflip.getPackedBytesKey(asset, assetSchema);
-  }
-
-  static getAccountAssetIdPairKey(address: string, asset_id: BigNumber.Value) {
-    return Coinflip.getPackedBytesKey(
-      { address, asset_id },
-      addressAssetIdPairSchema
-    );
-  }
-
   async updateAssetRecord(asset: Asset) {
-    const assetKey = Coinflip.getAssetKey(asset);
+    const assetKey = getAssetKey(asset);
     await this.updateStorage({ asset_to_id: [assetKey] });
     const assetId = this.storage.asset_to_id.get(assetKey);
 
@@ -297,7 +254,7 @@ export class Coinflip {
   }
 
   getAssetRecord(asset: Asset): AssetRecord | undefined {
-    const assetKey = Coinflip.getAssetKey(asset);
+    const assetKey = getAssetKey(asset);
     const assetId = this.storage.asset_to_id.get(assetKey);
     
     if (!assetId) {

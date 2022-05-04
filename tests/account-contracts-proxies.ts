@@ -27,6 +27,7 @@ import {
   tezAssetId,
   defaultFA2AssetId
 } from './constants';
+import { getAccountAssetIdPairKey, getAssetKey } from '../utils/byte-keys';
 
 const makeStorage = (
   assets: AssetRecord[] = [],
@@ -41,7 +42,7 @@ const makeStorage = (
   asset_to_id: MichelsonMap.fromLiteral(
     Object.fromEntries(
       assets.map((asset, index) => [
-        Coinflip.getAssetKey(asset.asset),
+        getAssetKey(asset.asset),
         new BigNumber(index)
       ])
     )
@@ -56,7 +57,7 @@ const makeStorage = (
   gamers_stats: MichelsonMap.fromLiteral(
     games.reduce<Record<string, GamerStats>>(
       (statsPart, game, index) => {
-        const key = Coinflip.getAccountAssetIdPairKey(
+        const key = getAccountAssetIdPairKey(
           game.gamer,
           game.asset_id
         );

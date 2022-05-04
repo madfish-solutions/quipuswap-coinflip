@@ -1,6 +1,7 @@
 import BigNumber from 'bignumber.js';
 
 import accounts, { alice } from '../../scripts/sandbox/accounts';
+import { getAccountAssetIdPairKey } from '../../utils/byte-keys';
 import { Tezos } from '../../utils/helpers';
 import {
   makeAllAssetsWithBankCoinflip,
@@ -138,10 +139,10 @@ describe('Coinflip bet test', function () {
         expect('head' in bet_coin_side).toEqual(true);
         expect('started' in status).toEqual(true);
         const newGamerStats = gamersStats.get(
-          Coinflip.getAccountAssetIdPairKey(alice.pkh, assetId)
+          getAccountAssetIdPairKey(alice.pkh, assetId)
         );
         const prevGamerStats = prevGamersStats.get(
-          Coinflip.getAccountAssetIdPairKey(alice.pkh, assetId)
+          getAccountAssetIdPairKey(alice.pkh, assetId)
         );
         if (shouldCreateGamerEntry) {
           expect(newGamerStats).toEqual({

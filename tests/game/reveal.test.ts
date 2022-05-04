@@ -1,6 +1,7 @@
 import BigNumber from 'bignumber.js';
 
 import accounts from '../../scripts/sandbox/accounts';
+import { getAccountAssetIdPairKey } from '../../utils/byte-keys';
 import {
   makeAssetsWithGamesCoinflip,
   makeAssetRecord,
@@ -17,7 +18,6 @@ import {
 } from "../constants";
 import {
   testcaseWithBalancesDiff,
-  expectNumberValuesEquality,
   notServerTestcase,
   serverErrorTestcase
 } from '../helpers';
@@ -144,7 +144,7 @@ describe('Coinflip reveal test', function () {
                   const assetId = assetName === 'tez'
                     ? tezAssetId
                     : defaultFA2AssetId;
-                  const statsKey = Coinflip.getAccountAssetIdPairKey(
+                  const statsKey = getAccountAssetIdPairKey(
                     accounts[accountAlias].pkh,
                     assetId
                   );
