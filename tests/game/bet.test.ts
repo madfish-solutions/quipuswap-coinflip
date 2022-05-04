@@ -1,10 +1,10 @@
-import assert, { deepEqual } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import accounts, { alice } from '../../scripts/sandbox/accounts';
 import { Tezos } from '../../utils/helpers';
 import {
   makeAllAssetsWithBankCoinflip,
+  makeAssetsWithGamesCoinflip,
   makeFA2
 } from "../account-contracts-proxies";
 import { Coinflip } from "../coinflip";
@@ -26,12 +26,14 @@ const unknownAssetId = '3';
 
 describe('Coinflip bet test', function () {
   let coinflips: Record<string, Coinflip> = {};
+  let oneGameCoinflips: Record<string, Coinflip> = {};
   let fa2Wrappers: Record<string, FA2> = {};
 
   async function successfulBetTestcase(
     localCoinflips: Record<string, Coinflip>,
     betSize: number,
-    assetId: string
+    assetId: string,
+    shouldCreateGamerEntry: boolean
   ) {
     const assetIsTez = assetId === tezAssetId;
     const mutezAmount = (assetIsTez ? betSize : 0) +
@@ -75,7 +77,8 @@ describe('Coinflip bet test', function () {
         const {
           games_counter: prevGamesCounter,
           network_bank: prevNetworkBank,
-          id_to_asset: prevIdToAsset
+          id_to_asset: prevIdToAsset,
+          gamers_stats: prevGamersStats
         } = prevStorage;
         const {
           bank: prevBank,
@@ -92,6 +95,7 @@ describe('Coinflip bet test', function () {
           network_bank: networkBank,
           network_fee: networkFee,
           id_to_asset: idToAsset,
+          gamers_stats: gamersStats
         } = userCoinflip.storage;
         const {
           bank: currentBank,
@@ -129,6 +133,29 @@ describe('Coinflip bet test', function () {
         });
         expect('head' in bet_coin_side).toEqual(true);
         expect('started' in status).toEqual(true);
+        const newGamerStats = gamersStats.get(
+          Coinflip.getAccountAssetIdPairKey(alice.pkh, assetId)
+        );
+        const prevGamerStats = prevGamersStats.get(
+          Coinflip.getAccountAssetIdPairKey(alice.pkh, assetId)
+        );
+        if (shouldCreateGamerEntry) {
+          expect(newGamerStats).toEqual({
+            last_game_id: prevGamesCounter,
+            games_count: new BigNumber(1),
+            total_won_amt: new BigNumber(0),
+            total_lost_amt: new BigNumber(0),
+            total_bets_amt: new BigNumber(betSize)
+          });          
+        } else {
+          expect(newGamerStats).toEqual({
+            last_game_id: prevGamesCounter,
+            games_count: prevGamerStats.games_count.plus(1),
+            total_won_amt: prevGamerStats.total_won_amt,
+            total_lost_amt: prevGamerStats.total_lost_amt,
+            total_bets_amt: prevGamerStats.total_bets_amt.plus(betSize)
+          });
+        }
       }
     )
   }
@@ -138,9 +165,23 @@ describe('Coinflip bet test', function () {
     coinflips = await makeAllAssetsWithBankCoinflip(
       fa2Wrappers.alice.contract.address
     );
+    oneGameCoinflips = await makeAssetsWithGamesCoinflip(
+      fa2Wrappers.alice.contract.address,
+      defaultFA2TokenId,
+      [
+        {
+          asset_id: new BigNumber(tezAssetId),
+          gamer: alice.pkh,
+          start: '2022-04-28T18:21:00Z',
+          bid_size: new BigNumber(defaultBetSize),
+          bet_coin_side: { head: Symbol() },
+          status: { started: Symbol() }
+        }
+      ]
+    );
   });
 
-  it('Should allow bets for all users', async () => {
+  it('Should allow bets for users of all types', async () => {
     await Promise.all(['alice', 'bob', 'carol'].map(
       async alias => {
         const coinflip = coinflips[alias];
@@ -283,20 +324,35 @@ amount is greater than bid size + network fee",
   });
 
   it(
-    'Should make a new record for bid and increase network bank for TEZ bid',
+    'Should make a new record for bid, update record for gamer if present, \
+and increase network bank for TEZ bid',
     async () => successfulBetTestcase(
-      coinflips,
+      oneGameCoinflips,
       defaultBetSize,
-      tezAssetId
+      tezAssetId,
+      false
     )
   );
 
   it(
-    'Should make a new record, increase network bank, and take tokens for FA2 token bid',
+    'Should make a new record, a new one for gamer if there is none, and \
+increase network bank for TEZ token bid',
     async () => successfulBetTestcase(
       coinflips,
       defaultBetSize,
-      defaultFA2AssetId
+      tezAssetId,
+      true
+    )
+  );
+
+  it(
+    'Should make a new record, a new one for gamer if there is none, \
+increase network bank, and take tokens for FA2 token bid',
+    async () => successfulBetTestcase(
+      coinflips,
+      defaultBetSize,
+      defaultFA2AssetId,
+      true
     )
   );
 });

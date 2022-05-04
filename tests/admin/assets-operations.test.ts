@@ -32,19 +32,24 @@ describe('Coinflip admin assets entrypoints test', function () {
   let emptyCoinflips: Record<string, Coinflip> = {};
 
   beforeAll(async () => {
-    const fa2Wrappers = await makeFA2();
-    const fa2TokenAddress = fa2Wrappers.alice.contract.address;
-    testFA2TokenAsset = {
-      fa2: {
-        address: fa2TokenAddress,
-        id: new BigNumber(defaultFA2TokenId)
-      }
-    };
-    emptyCoinflips = await makeEmptyCoinflip();
-    allAssetsAddedCoinflips = await makeAllAssetsAddedCoinflip(
-      fa2TokenAddress,
-      defaultFA2TokenId
-    );
+    try {
+      const fa2Wrappers = await makeFA2();
+      const fa2TokenAddress = fa2Wrappers.alice.contract.address;
+      testFA2TokenAsset = {
+        fa2: {
+          address: fa2TokenAddress,
+          id: new BigNumber(defaultFA2TokenId)
+        }
+      };
+      emptyCoinflips = await makeEmptyCoinflip();
+      allAssetsAddedCoinflips = await makeAllAssetsAddedCoinflip(
+        fa2TokenAddress,
+        defaultFA2TokenId
+      );
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   });
 
   describe('Testing entrypoint: Set_payout_quotient', () => {
@@ -544,8 +549,8 @@ tries to call the entrypoint',
         ]);
         await coinflip.updateStorage({ id_to_asset: [tezAssetId, defaultFA2AssetId] });
         const { id_to_asset } = coinflip.storage;
-        expect(id_to_asset.get(tezAssetId).paused).toEqual(false);
-        expect(id_to_asset.get(defaultFA2AssetId).paused).toEqual(true);
+        expect(id_to_asset.get(tezAssetId)?.paused).toEqual(false);
+        expect(id_to_asset.get(defaultFA2AssetId)?.paused).toEqual(true);
       }
     );
 
@@ -562,6 +567,6 @@ tries to call the entrypoint',
         expect(id_to_asset.get(tezAssetId).paused).toEqual(true);
         expect(id_to_asset.get(defaultFA2AssetId).paused).toEqual(false);
       }
-    )
+    );
   });
 });

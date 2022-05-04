@@ -64,7 +64,7 @@ to call the entrypoint',
       "Should set new admin",
       async () => {
         const { alice: aliceCoinflip, bob: bobCoinflip } = coinflips;
-        
+
         await aliceCoinflip.sendSingle(aliceCoinflip.setAdmin(bob.pkh));
         await aliceCoinflip.updateStorage();
 

@@ -13,6 +13,7 @@ const storage: CoinflipStorage = {
   network_fee: new BigNumber(100),
   asset_to_id: MichelsonMap.fromLiteral({}) as CoinflipStorage['asset_to_id'],
   id_to_asset: MichelsonMap.fromLiteral({}) as CoinflipStorage['id_to_asset'],
+  gamers_stats: MichelsonMap.fromLiteral({}) as CoinflipStorage['gamers_stats'],
   network_bank: new BigNumber(0)
 };
 

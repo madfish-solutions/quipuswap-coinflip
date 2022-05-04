@@ -17,7 +17,7 @@ import {
 import {
   InternalOperationResult,
   MichelsonV1Expression,
-  MichelsonV1ExpressionExtended
+  MichelsonV1ExpressionExtended,
 } from '@taquito/rpc';
 import { rejects } from 'assert';
 import BigNumber from 'bignumber.js';
@@ -46,6 +46,7 @@ export function replaceAddressesWithBytes(expr: MichelsonV1Expression) {
   ) {
     return { bytes: b58decode(expr.string) };
   }
+
   if ('int' in expr || 'bytes' in expr || 'string' in expr) {
     return expr;
   }
@@ -72,11 +73,11 @@ async function sendWithConfirmation(
 ): Promise<BatchWalletOperation>;
 async function sendWithConfirmation(
   tezos: TezosToolkit,
-  payload: BatchContentsEntry,
+  payload: BatchContentsEntry
 ): Promise<TransactionOperation>;
 async function sendWithConfirmation(
   tezos: TezosToolkit,
-  batchOrPayload: WalletOperationBatch | BatchContentsEntry,
+  batchOrPayload: WalletOperationBatch | BatchContentsEntry
 ) {
   let op: TransactionOperation | BatchWalletOperation;
   if ('method' in batchOrPayload) {
@@ -115,7 +116,7 @@ export async function sendBatch(
 
 export async function sendSingle(
   tezos: TezosToolkit,
-  payload: BatchContentsEntry
+  payload: BatchContentsEntry,
 ) {
   return sendWithConfirmation(tezos, payload);
 }
@@ -251,7 +252,17 @@ export async function testcaseWithBalancesDiff(
     fa2.updateStorage({ account_info: ownersAddresses }),
     ...gamersAliases.map(
       alias => coinflips[alias].updateStorage({
-        id_to_asset: [tezAssetId, defaultFA2AssetId]
+        id_to_asset: [tezAssetId, defaultFA2AssetId],
+        gamers_stats: gamersAddresses
+          .map(
+            gamerAddress => [tezAssetId, defaultFA2AssetId].map(
+              assetId => Coinflip.getAccountAssetIdPairKey(
+                gamerAddress,
+                assetId
+              )
+            )
+          )
+          .flat()
       })
     )
   ]);
@@ -269,7 +280,17 @@ export async function testcaseWithBalancesDiff(
     fa2.updateStorage({ account_info: ownersAddresses }),
     ...gamersAliases.map(
       alias => coinflips[alias].updateStorage({
-        id_to_asset: [tezAssetId, defaultFA2AssetId]
+        id_to_asset: [tezAssetId, defaultFA2AssetId],
+        gamers_stats: gamersAddresses
+          .map(
+            gamerAddress => [tezAssetId, defaultFA2AssetId].map(
+              assetId => Coinflip.getAccountAssetIdPairKey(
+                gamerAddress,
+                assetId
+              )
+            )
+          )
+          .flat()
       })
     )
   ]);
