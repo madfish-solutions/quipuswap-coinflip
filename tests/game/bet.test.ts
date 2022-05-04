@@ -84,7 +84,8 @@ describe('Coinflip bet test', function () {
           bank: prevBank,
           total_won_amt: prevTotalWonAmt,
           total_lost_amt: prevTotalLostAmt,
-          games_count: prevAssetGamesCount
+          games_count: prevAssetGamesCount,
+          total_bets_amt: prevTotalBetsAmt
         } = prevIdToAsset.get(assetId);
         await userCoinflip.updateStorage({
           games: [prevGamesCounter.toFixed()]
@@ -101,18 +102,21 @@ describe('Coinflip bet test', function () {
           bank: currentBank,
           total_won_amt: totalWonAmt,
           total_lost_amt: totalLostAmt,
-          games_count: assetGamesCount
+          games_count: assetGamesCount,
+          total_bets_amt: totalBetsAmt
         } = idToAsset.get(assetId);
         expect({
           currentBank,
           totalWonAmt,
           totalLostAmt,
-          assetGamesCount
+          assetGamesCount,
+          totalBetsAmt
         }).toEqual({
           currentBank: prevBank,
           totalWonAmt: prevTotalWonAmt,
           totalLostAmt: prevTotalLostAmt,
-          assetGamesCount: prevAssetGamesCount.plus(1)
+          assetGamesCount: prevAssetGamesCount.plus(1),
+          totalBetsAmt: prevTotalBetsAmt.plus(betSize)
         });
         expectNumberValuesEquality(
           currentGamesCounter.minus(prevGamesCounter),

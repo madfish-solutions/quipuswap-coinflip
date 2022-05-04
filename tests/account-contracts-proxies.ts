@@ -96,9 +96,13 @@ export const makeAssetRecord = (
   paused = false,
   games: Game[] = []
 ) => {
-  const { total_won_amt, total_lost_amt } = games.reduce(
+  const { total_won_amt, total_lost_amt, total_bets_amt } = games.reduce(
     (
-      { total_won_amt: prevTotalWonAmt, total_lost_amt: prevTotalLostAmt },
+      {
+        total_won_amt: prevTotalWonAmt,
+        total_lost_amt: prevTotalLostAmt,
+        total_bets_amt: prevTotalBetsAmt
+      },
       { bid_size, status }
     ) => ({
       total_won_amt: 'won' in status
@@ -106,9 +110,14 @@ export const makeAssetRecord = (
         : prevTotalWonAmt,
       total_lost_amt: 'lost' in status
         ? prevTotalLostAmt.plus(bid_size)
-        : prevTotalLostAmt
+        : prevTotalLostAmt,
+      total_bets_amt: prevTotalBetsAmt.plus(bid_size)
     }),
-    { total_won_amt: new BigNumber(0), total_lost_amt: new BigNumber(0) }
+    {
+      total_won_amt: new BigNumber(0),
+      total_lost_amt: new BigNumber(0),
+      total_bets_amt: new BigNumber(0)
+    }
   );
 
   return {
@@ -118,6 +127,7 @@ export const makeAssetRecord = (
     max_bet_percent_f: defaultMaxBetPercentage,
     total_won_amt,
     total_lost_amt,
+    total_bets_amt,
     games_count: new BigNumber(games.length),
     paused
   };

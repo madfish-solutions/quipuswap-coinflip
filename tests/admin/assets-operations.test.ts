@@ -474,6 +474,7 @@ TEZ asset",
           payout_quot_f: PRECISION.plus(1),
           total_won_amt: new BigNumber(0),
           total_lost_amt: new BigNumber(0),
+          total_bets_amt: new BigNumber(0),
           games_count: new BigNumber(0),
           paused: false
         });
@@ -509,6 +510,7 @@ TEZ asset",
           payout_quot_f: defaultPayout,
           total_won_amt: new BigNumber(0),
           total_lost_amt: new BigNumber(0),
+          total_bets_amt: new BigNumber(0),
           games_count: new BigNumber(0),
           paused: false
         });

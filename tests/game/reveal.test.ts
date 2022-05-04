@@ -177,12 +177,14 @@ describe('Coinflip reveal test', function () {
               bank: prevBank,
               total_won_amt: prevTotalWonAmt,
               total_lost_amt: prevTotalLostAmt,
+              total_bets_amt: prevTotalBetsAmt,
               games_count: prevAssetGamesCount
             } = prevIdToAsset.get(assetId);
             const {
               bank,
               total_won_amt: totalWonAmt,
               total_lost_amt: totalLostAmt,
+              total_bets_amt: totalBetsAmt,
               games_count: assetGamesCount
             } = idToAsset.get(assetId);
             let expectedBank = new BigNumber(prevBank);
@@ -210,11 +212,13 @@ describe('Coinflip reveal test', function () {
               bank,
               totalWonAmt,
               totalLostAmt,
-              assetGamesCount
+              totalBetsAmt,
+              assetGamesCount,
             }).toEqual({
               bank: expectedBank,
               totalWonAmt: expectedTotalWonAmt,
               totalLostAmt: expectedTotalLostAmt,
+              totalBetsAmt: prevTotalBetsAmt,
               assetGamesCount: prevAssetGamesCount
             });
           }

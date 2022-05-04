@@ -56,7 +56,10 @@ function bet(
       bet_coin_side = params.coin_side;
       status        = Started;
     ];
-    asset_record.games_count := asset_record.games_count + 1n;
+    asset_record := asset_record with record [
+      games_count    += 1n;
+      total_bets_amt += params.bid_size;
+    ];
     storage.id_to_asset[params.asset_id] := asset_record;
     const gamer_stats_key = Bytes.pack(record [
       address = Tezos.sender;

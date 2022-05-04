@@ -55,6 +55,7 @@ export interface AssetRecord {
   max_bet_percent_f: BigNumber;
   total_won_amt: BigNumber;
   total_lost_amt: BigNumber;
+  total_bets_amt: BigNumber;
   games_count: BigNumber;
   paused: boolean;
 }

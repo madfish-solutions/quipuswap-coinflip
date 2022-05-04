@@ -84,6 +84,7 @@ function add_asset(
       max_bet_percent_f = params.max_bet_percent_f;
       total_won_amt     = 0n;
       total_lost_amt    = 0n;
+      total_bets_amt    = 0n;
       games_count       = 0n;
       paused            = False;
     ];

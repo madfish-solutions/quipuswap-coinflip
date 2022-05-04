@@ -20,6 +20,7 @@ type asset_record_t     is [@layout:comb] record [
   max_bet_percent_f       : nat;
   total_won_amt           : nat;
   total_lost_amt          : nat;
+  total_bets_amt          : nat;
   games_count             : nat;
   paused                  : bool;
 ]
