@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import { alice, bob, carol } from '../scripts/sandbox/accounts';
 
-import defaultStorage from '../storage/coinflip';
+import defaultStorage from './storage/coinflip';
 import { Game } from './coinflip';
 
 // Some contract constants
