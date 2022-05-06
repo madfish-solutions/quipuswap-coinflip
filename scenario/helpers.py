@@ -364,7 +364,7 @@ class LocalChain():
         self.last_res = None
 
     """ execute the entrypoint and save the resulting state and balance updates """
-    def execute(self, call, amount=0, sender=None, source=None, view_results=None):
+    def execute(self, call, amount=0, sender=alice, source=None, view_results=None):
         new_balance = self.balance + amount
         res = call.interpret(
             amount=amount,
@@ -409,7 +409,7 @@ class LocalChain():
         return res
 
     """ just interpret, don't store anything """
-    def interpret(self, call, amount=0, sender=None, source=None, view_results=None):
+    def interpret(self, call, amount=0, sender=alice, source=None, view_results=None):
         res = call.interpret(
             amount=amount,
             storage=self.storage,

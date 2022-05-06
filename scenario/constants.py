@@ -18,18 +18,21 @@ token_c_address = "KT1XXAavg3tTj12W1ADvd3EEnm1pu6XTmiEF"
 token_d_address = "KT1PQ8TMzGMfViRq4tCMFKD2QF5zwJnY67Xn"
 token_e_address = "KT1X1LgNkQShpF9nRLYw3Dgdy4qp38MX617z"
 
+token_a_id = 7
+token_b_id = 66
+
 token_a_fa12 = ("fa12", token_a_address)
 token_a_fa2 = {
     "fa2": {
             "address": token_a_address,
-            "id": 0
+            "id": token_a_id
         }
     }
 
 token_b_fa2 = {
     "fa2": {
             "address": token_b_address,
-            "id": 1
+            "id": token_b_id
         }
     }
 
