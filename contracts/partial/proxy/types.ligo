@@ -1,9 +1,9 @@
-type storage_t is [@layout:comb] record [
-  gamble_address        : address;
-  r                     : unit;
+type storage_t          is [@layout:comb] record [
+  gamble_address          : address;
+  r                       : unit;
 ]
 
-type return_t       is list(operation) * storage_t
+type return_t           is list(operation) * storage_t
 
 type coin_side_t        is
 | Head                    of unit
