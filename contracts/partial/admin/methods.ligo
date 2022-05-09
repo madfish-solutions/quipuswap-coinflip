@@ -65,9 +65,9 @@ function add_asset(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    const asset : asset_t = params.asset;
     assert_valid_payout(params.payout_quot_f);
     assert_valid_max_bet(params.max_bet_percent_f);
+    const asset : asset_t = params.asset;
 
     const asset_key = Bytes.pack(asset);
     assert_none_with_error(
@@ -96,13 +96,14 @@ function add_asset_bank(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    var operations : list(operation) := Constants.no_operations;
+    const amt : nat = params.amount;
+    require(amt > 0n, Coinflip.zero_amount);
     var asset_record : asset_record_t := unwrap_asset_record(
       params.asset_id,
       storage.id_to_asset
     );
+    var operations : list(operation) := Constants.no_operations;
     const asset : asset_t = asset_record.asset;
-    const amt : nat = params.amount;
     case asset of [
     | Fa2(_) -> block {
       operations := list [
@@ -111,7 +112,6 @@ function add_asset_bank(
     }
     | Tez(_) -> require(Tezos.amount = amt * 1mutez, Coinflip.invalid_amount)
     ];
-    require(amt > 0n, Coinflip.zero_amount);
 
     asset_record.bank := asset_record.bank + amt;
     storage.id_to_asset[params.asset_id] := asset_record;
@@ -123,18 +123,20 @@ function remove_asset_bank(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    const amt : nat = params.amount;
+    require(amt > 0n, Coinflip.zero_amount);
     var asset_record : asset_record_t := unwrap_asset_record(
       params.asset_id,
       storage.id_to_asset
     );
-    const amt : nat = params.amount;
+    asset_record.bank := nat_or_error(
+      asset_record.bank - amt,
+      Coinflip.amount_too_high
+    );
     const operations = list [
       transfer_asset(asset_record.asset, Tezos.self_address, Tezos.sender, amt)
     ];
-    require(amt > 0n, Coinflip.zero_amount);
-    require(amt <= asset_record.bank, Coinflip.amount_too_high);
 
-    asset_record.bank := abs(asset_record.bank - amt);
     storage.id_to_asset[params.asset_id] := asset_record;
   } with (operations, storage);
 
