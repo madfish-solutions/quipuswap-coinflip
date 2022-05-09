@@ -1,7 +1,7 @@
 #include "../constants.ligo"
-#include "../helpers/coinflip.ligo"
-#include "../helpers/fa2.ligo"
-#include "../helpers/general.ligo"
+#include "../coinflip_helpers.ligo"
+#include "../fa2_helpers.ligo"
+#include "../general_helpers.ligo"
 #include "../types.ligo"
 #include "./types.ligo"
 

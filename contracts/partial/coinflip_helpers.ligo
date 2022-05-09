@@ -1,6 +1,6 @@
-#include "../errors.ligo"
-#include "../types.ligo"
-#include "./general.ligo"
+#include "./errors.ligo"
+#include "./types.ligo"
+#include "./general_helpers.ligo"
 
 [@inline] function unwrap_asset_record(
   const asset_id          : nat;

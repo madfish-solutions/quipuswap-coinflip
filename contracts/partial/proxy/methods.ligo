@@ -1,5 +1,5 @@
 #include "../errors.ligo"
-#include "../helpers/general.ligo"
+#include "../general_helpers.ligo"
 #include "./types.ligo"
 
 function proxy_bet(

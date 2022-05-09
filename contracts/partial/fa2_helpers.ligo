@@ -1,6 +1,6 @@
-#include "../../lib/i_fa2.ligo"
-#include "../errors.ligo"
-#include "./general.ligo"
+#include ".././lib/i_fa2.ligo"
+#include "./errors.ligo"
+#include "./general_helpers.ligo"
 
 function get_opt_fa2_transfer_entrypoint(
   const token           : address)
