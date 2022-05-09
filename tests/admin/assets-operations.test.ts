@@ -433,19 +433,6 @@ TEZ asset",
             'Coinflip/asset-exists'
           )
         );
-
-        it(
-          "Should fail with 'Coinflip/invalid-asset' error for non-existent asset",
-          async () => adminErrorTestcase(
-            allAssetsAddedCoinflips,
-            coinflip => coinflip.addAsset(
-              defaultPayout,
-              defaultMaxBetPercentage,
-              nonExistentFA2Asset
-            ),
-            'Coinflip/invalid-asset'
-          )
-        );
       });
     });
 

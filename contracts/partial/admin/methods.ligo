@@ -68,7 +68,6 @@ function add_asset(
     const asset : asset_t = params.asset;
     assert_valid_payout(params.payout_quot_f);
     assert_valid_max_bet(params.max_bet_percent_f);
-    assert_valid_asset(asset, Coinflip.invalid_asset);
 
     const asset_key = Bytes.pack(asset);
     assert_none_with_error(
