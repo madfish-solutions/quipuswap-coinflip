@@ -1,6 +1,8 @@
 #include "../constants.ligo"
+#include "../helpers/coinflip.ligo"
+#include "../helpers/fa2.ligo"
+#include "../helpers/general.ligo"
 #include "../types.ligo"
-#include "../helpers.ligo"
 #include "./types.ligo"
 
 [@inline] function get_expected_tez_amount(
@@ -18,6 +20,7 @@ function bet(
   var storage           : storage_t)
                         : return_t is
   block {
+    require(Tezos.sender = Tezos.source, Coinflip.indirect_bet);
     require(params.bid_size > 0n, Coinflip.zero_amount);
     var asset_record : asset_record_t := unwrap_asset_record(
       params.asset_id,

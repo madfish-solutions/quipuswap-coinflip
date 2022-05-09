@@ -6,6 +6,7 @@ import { Tezos } from '../../utils/helpers';
 import {
   makeAllAssetsWithBankCoinflip,
   makeAssetsWithGamesCoinflip,
+  makeBetProxy,
   makeFA2
 } from "../account-contracts-proxies";
 import { Coinflip } from "../coinflip";
@@ -20,6 +21,7 @@ import {
   expectNumberValuesEquality,
   entrypointErrorTestcase
 } from '../helpers';
+import { BetProxy } from '../helpers/bet-proxy';
 import { FA2 } from "../helpers/FA2";
 
 const defaultBetSize = 100;
@@ -29,6 +31,7 @@ describe('Coinflip bet test', function () {
   let coinflips: Record<string, Coinflip> = {};
   let oneGameCoinflips: Record<string, Coinflip> = {};
   let fa2Wrappers: Record<string, FA2> = {};
+  let betProxies: Record<string, BetProxy> = {};
 
   async function successfulBetTestcase(
     localCoinflips: Record<string, Coinflip>,
@@ -170,6 +173,7 @@ describe('Coinflip bet test', function () {
     coinflips = await makeAllAssetsWithBankCoinflip(
       fa2Wrappers.alice.contract.address
     );
+    betProxies = await makeBetProxy(coinflips.alice.contractAddress);
     oneGameCoinflips = await makeAssetsWithGamesCoinflip(
       fa2Wrappers.alice.contract.address,
       defaultFA2TokenId,
@@ -186,30 +190,48 @@ describe('Coinflip bet test', function () {
     );
   });
 
-  it('Should allow bets for users of all types', async () => {
-    await Promise.all(['alice', 'bob', 'carol'].map(
-      async alias => {
-        const coinflip = coinflips[alias];
-        await coinflip.updateStorage();
-        const fa2 = fa2Wrappers[alias];
+  describe('Testing permissions control', () => {
+    it(
+      'Should allow bets without proxy contracts for users of all types',
+      async () => {
+        await Promise.all(['alice', 'bob', 'carol'].map(
+          async alias => {
+            const coinflip = coinflips[alias];
+            await coinflip.updateStorage();
+            const fa2 = fa2Wrappers[alias];
 
-        return coinflip.sendBatch([
-          fa2.updateOperators([{
-            add_operator: {
-              token_id: defaultFA2TokenId,
-              owner: accounts[alias].pkh,
-              operator: coinflip.contractAddress
-            }
-          }]),
-          coinflip.bet(
-            defaultFA2AssetId,
-            defaultBetSize,
-            { head: Symbol() },
-            coinflip.storage.network_fee.toNumber()
-          )
-        ]);
+            return coinflip.sendBatch([
+              fa2.updateOperators([{
+                add_operator: {
+                  token_id: defaultFA2TokenId,
+                  owner: accounts[alias].pkh,
+                  operator: coinflip.contractAddress
+                }
+              }]),
+              coinflip.bet(
+                defaultFA2AssetId,
+                defaultBetSize,
+                { head: Symbol() },
+                coinflip.storage.network_fee.toNumber()
+              )
+            ]);
+          }
+        ));
       }
-    ));
+    );
+
+    it(
+      "Should fail with 'Coinflip/indirect-bet' error when trying to bet with a proxy contract",
+      async () =>entrypointErrorTestcase(
+        betProxies.alice.proxyBet(
+          tezAssetId,
+          defaultBetSize,
+          { head: Symbol() },
+          coinflips.alice.storage.network_fee.plus(defaultBetSize).toNumber()
+        ),
+        'Coinflip/indirect-bet'
+      )
+    )
   });
 
   describe('Testing parameters validation', () => {

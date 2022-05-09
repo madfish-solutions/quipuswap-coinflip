@@ -20,4 +20,9 @@ module Coinflip is {
   const cannot_pay      : string = "Coinflip/cannot-pay";
   const game_finished   : string = "Coinflip/game-finished";
   const asset_paused    : string = "Coinflip/asset-paused";
+  const indirect_bet    : string = "Coinflip/indirect-bet";
+}
+
+module Bet_proxy is {
+  const not_gambling    : string = "Bet_proxy/not-gambling";
 }
