@@ -85,6 +85,7 @@ This entrypoint is used to start a game.
 
 - the entrypoint is called by a classic account rather than smart contract;
 - bid size is positive;
+- asset with specified id exists in `id_to_asset` bigmap;
 - bets for the specified asset are not paused;
 - bid size does not exceed the maximal size, which is equal to `max_bet_percent_f * bank / 1e18`;
 - the caller must have at least `bid_size` of the specified asset if it is a FA2 token;
