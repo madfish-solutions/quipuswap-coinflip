@@ -16,7 +16,7 @@ export default {
   server: process.env.SERVER_ADDRESS,
   games_counter: 0,
   games: MichelsonMap.fromLiteral({}),
-  assets_counter: 0,
+  assets_counter: 2,
   network_fee: 10000,
   asset_to_id: MichelsonMap.fromLiteral({
     [getAssetKey(TEZ_ASSET)]: 0,
