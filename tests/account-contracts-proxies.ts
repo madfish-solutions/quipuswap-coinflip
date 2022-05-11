@@ -28,6 +28,7 @@ import {
   defaultFA2AssetId
 } from './constants';
 import { getAccountAssetIdPairKey, getAssetKey } from '../utils/byte-keys';
+import { BetProxy } from './helpers/bet-proxy';
 
 const makeStorage = (
   assets: AssetRecord[] = [],
@@ -165,6 +166,24 @@ export async function makeFA2(): Promise<Record<string, FA2>> {
   await Promise.all(['bob', 'carol'].map(
     async alias => result[alias] =
       await FA2.init(aliceFA2.contract.address, await initTezos(alias))
+  ));
+
+  return result;
+}
+
+export async function makeBetProxy(
+  coinflipAddress: string
+): Promise<Record<string, BetProxy>> {
+  console.log('Originating bet proxy...');
+  const aliceBetProxy = await BetProxy.originate(
+    Tezos,
+    { gamble_address: coinflipAddress }
+  );
+
+  const result = { alice: aliceBetProxy };
+  await Promise.all(['bob', 'carol'].map(
+    async alias => result[alias] =
+      await FA2.init(aliceBetProxy.contract.address, await initTezos(alias))
   ));
 
   return result;

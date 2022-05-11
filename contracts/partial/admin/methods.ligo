@@ -1,6 +1,8 @@
 #include "../constants.ligo"
 #include "../types.ligo"
-#include "../helpers.ligo"
+#include "../coinflip_helpers.ligo"
+#include "../fa2_helpers.ligo"
+#include "../general_helpers.ligo"
 
 function set_admin(
   const params          : address;
