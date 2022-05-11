@@ -94,17 +94,17 @@ function reveal(
       const one_reveal  : one_reveal_t)
                         : reveal_acc_t is
       block {
-        var new_operations := acc.operations;
-        var new_games := acc.games;
-        var new_id_to_asset := acc.id_to_asset;
-        var new_gamers_stats := acc.gamers_stats;
         const game_id = one_reveal.game_id;
+        var new_games := acc.games;
         var game := unwrap_game(game_id, new_games);
         require(game.status = Started, Coinflip.game_finished);
         var asset_record : asset_record_t := unwrap_asset_record(
           game.asset_id,
           acc.id_to_asset
         );
+        var new_operations := acc.operations;
+        var new_id_to_asset := acc.id_to_asset;
+        var new_gamers_stats := acc.gamers_stats;
         const truncated_random = one_reveal.random_value mod
           Constants.max_random;
         const gamer_stats_key = Bytes.pack(record [
@@ -124,8 +124,8 @@ function reveal(
           game.status := Won;
           const payout_size = game.bid_size * asset_record.payout_quot_f
             / Constants.precision;
-          require(
-            asset_record.bank + game.bid_size >= payout_size,
+          asset_record.bank := nat_or_error(
+            asset_record.bank + game.bid_size - payout_size,
             Coinflip.cannot_pay
           );
           new_gamer_stats.total_won_amt := new_gamer_stats.total_won_amt +
@@ -136,9 +136,6 @@ function reveal(
             game.gamer,
             payout_size
           ) # acc.operations;
-          asset_record.bank := abs(
-            asset_record.bank + game.bid_size - payout_size
-          );
           asset_record.total_won_amt := asset_record.total_won_amt
             + payout_size;
         }

@@ -1,4 +1,4 @@
-#include ".././lib/i_fa2.ligo"
+#include "../lib/i_fa2.ligo"
 #include "./errors.ligo"
 #include "./general_helpers.ligo"
 
@@ -17,20 +17,6 @@ function get_fa2_token_transfer_entrypoint(
                         : contract(fa2_transfer_t)
   )
   ]
-
-[@inline] function assert_valid_asset(
-  const asset           : asset_t;
-  const error           : string)
-                        : unit is
-  block {
-    case asset of [
-    | Fa2(token) -> assert_some_with_error(
-      get_opt_fa2_transfer_entrypoint(token.address),
-      error
-    )
-    | Tez(_)     -> skip
-    ];
-  } with unit;
 
 function wrap_fa2_transfer_trx(
   const from_           : address;

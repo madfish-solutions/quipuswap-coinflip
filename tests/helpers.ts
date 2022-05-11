@@ -10,7 +10,6 @@ import {
 } from '@taquito/taquito';
 import { MichelsonMapKey } from '@taquito/michelson-encoder';
 import { InternalOperationResult } from '@taquito/rpc';
-import { rejects } from 'assert';
 import BigNumber from 'bignumber.js';
 
 import { confirmOperation } from '../utils/confirmation';
@@ -152,13 +151,19 @@ export const expectNumberValuesEquality = (
 
 export const entrypointErrorTestcase = async (
   payload: BatchContentsEntry,
-  expectedError: string,
-) => rejects(
-  async () => 'method' in payload
-    ? payload.method.send(payload.sendParams)
-    : payload.send(),
-  (e: Error) => e.message === expectedError
-);
+  expectedError: string
+) => {
+  expect.assertions(1);
+  try {
+    if ('method' in payload) {
+      await payload.method.send(payload.sendParams);
+    } else {
+      await payload.send();
+    }
+  } catch (e) {
+    expect(e.message).toEqual(expectedError)
+  }
+};
 
 export const notAdminTestcase = async (payload: BatchContentsEntry) =>
   entrypointErrorTestcase(payload, 'Coinflip/not-admin');
