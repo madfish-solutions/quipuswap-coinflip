@@ -1,4 +1,5 @@
 #include "../constants.ligo"
+#include "../errors.ligo"
 #include "../coinflip_helpers.ligo"
 #include "../fa2_helpers.ligo"
 #include "../general_helpers.ligo"
@@ -22,9 +23,9 @@ function bet(
   block {
     require(Tezos.sender = Tezos.source, Coinflip.indirect_bet);
     require(params.bid_size > 0n, Coinflip.zero_amount);
-    var asset_record : asset_record_t := unwrap_asset_record(
-      params.asset_id,
-      storage.id_to_asset
+    var asset_record := unwrap(
+      storage.id_to_asset[params.asset_id],
+      Coinflip.unknown_asset
     );
     require(not asset_record.paused, Coinflip.asset_paused);
     require(
@@ -96,11 +97,11 @@ function reveal(
       block {
         const game_id = one_reveal.game_id;
         var new_games := acc.games;
-        var game := unwrap_game(game_id, new_games);
+        var game := unwrap(new_games[game_id], Coinflip.unknown_game);
         require(game.status = Started, Coinflip.game_finished);
-        var asset_record : asset_record_t := unwrap_asset_record(
-          game.asset_id,
-          acc.id_to_asset
+        var asset_record := unwrap(
+          acc.id_to_asset[game.asset_id],
+          Coinflip.unknown_asset
         );
         var new_operations := acc.operations;
         var new_id_to_asset := acc.id_to_asset;
