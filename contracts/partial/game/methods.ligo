@@ -1,6 +1,9 @@
 #include "../constants.ligo"
+#include "../errors.ligo"
+#include "../coinflip_helpers.ligo"
+#include "../fa2_helpers.ligo"
+#include "../general_helpers.ligo"
 #include "../types.ligo"
-#include "../helpers.ligo"
 #include "./types.ligo"
 
 [@inline] function get_expected_tez_amount(
@@ -18,10 +21,11 @@ function bet(
   var storage           : storage_t)
                         : return_t is
   block {
+    require(Tezos.sender = Tezos.source, Coinflip.indirect_bet);
     require(params.bid_size > 0n, Coinflip.zero_amount);
-    var asset_record : asset_record_t := unwrap_asset_record(
-      params.asset_id,
-      storage.id_to_asset
+    var asset_record := unwrap(
+      storage.id_to_asset[params.asset_id],
+      Coinflip.unknown_asset
     );
     require(not asset_record.paused, Coinflip.asset_paused);
     require(
@@ -91,17 +95,17 @@ function reveal(
       const one_reveal  : one_reveal_t)
                         : reveal_acc_t is
       block {
-        var new_operations := acc.operations;
+        const game_id = one_reveal.game_id;
         var new_games := acc.games;
+        var game := unwrap(new_games[game_id], Coinflip.unknown_game);
+        require(game.status = Started, Coinflip.game_finished);
+        var asset_record := unwrap(
+          acc.id_to_asset[game.asset_id],
+          Coinflip.unknown_asset
+        );
+        var new_operations := acc.operations;
         var new_id_to_asset := acc.id_to_asset;
         var new_gamers_stats := acc.gamers_stats;
-        const game_id = one_reveal.game_id;
-        var game := unwrap_game(game_id, new_games);
-        require(game.status = Started, Coinflip.game_finished);
-        var asset_record : asset_record_t := unwrap_asset_record(
-          game.asset_id,
-          acc.id_to_asset
-        );
         const truncated_random = one_reveal.random_value mod
           Constants.max_random;
         const gamer_stats_key = Bytes.pack(record [
@@ -121,8 +125,8 @@ function reveal(
           game.status := Won;
           const payout_size = game.bid_size * asset_record.payout_quot_f
             / Constants.precision;
-          require(
-            asset_record.bank + game.bid_size >= payout_size,
+          asset_record.bank := nat_or_error(
+            asset_record.bank + game.bid_size - payout_size,
             Coinflip.cannot_pay
           );
           new_gamer_stats.total_won_amt := new_gamer_stats.total_won_amt +
@@ -133,9 +137,6 @@ function reveal(
             game.gamer,
             payout_size
           ) # acc.operations;
-          asset_record.bank := abs(
-            asset_record.bank + game.bid_size - payout_size
-          );
           asset_record.total_won_amt := asset_record.total_won_amt
             + payout_size;
         }

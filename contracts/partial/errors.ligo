@@ -4,7 +4,6 @@ module Coinflip is {
   const not_server      : string = "Coinflip/not-server";
   const game_not_found  : string = "Coinflip/game-not-found";
   const game_ended      : string = "Coinflip/game-ended";
-  const invalid_asset   : string = "Coinflip/invalid-asset";
   const unknown_asset   : string = "Coinflip/unknown-asset";
   const asset_exists    : string = "Coinflip/asset-exists";
   const invalid_amount  : string = "Coinflip/invalid-amount";
@@ -20,4 +19,9 @@ module Coinflip is {
   const cannot_pay      : string = "Coinflip/cannot-pay";
   const game_finished   : string = "Coinflip/game-finished";
   const asset_paused    : string = "Coinflip/asset-paused";
+  const indirect_bet    : string = "Coinflip/indirect-bet";
+}
+
+module Bet_proxy is {
+  const not_gambling    : string = "Bet_proxy/not-gambling";
 }

@@ -1,6 +1,9 @@
 #include "../constants.ligo"
+#include "../errors.ligo"
 #include "../types.ligo"
-#include "../helpers.ligo"
+#include "../coinflip_helpers.ligo"
+#include "../fa2_helpers.ligo"
+#include "../general_helpers.ligo"
 
 function set_admin(
   const params          : address;
@@ -27,9 +30,9 @@ function set_payout_quotient(
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
     assert_valid_payout(params.value_f);
-    var asset_record : asset_record_t := unwrap_asset_record(
-      params.asset_id,
-      storage.id_to_asset
+    var asset_record := unwrap(
+      storage.id_to_asset[params.asset_id],
+      Coinflip.unknown_asset
     );
     asset_record.payout_quot_f := params.value_f;
     storage.id_to_asset[params.asset_id] := asset_record;
@@ -42,9 +45,9 @@ function set_max_bet(
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
     assert_valid_max_bet(params.value_f);
-    var asset_record : asset_record_t := unwrap_asset_record(
-      params.asset_id,
-      storage.id_to_asset
+    var asset_record := unwrap(
+      storage.id_to_asset[params.asset_id],
+      Coinflip.unknown_asset
     );
     asset_record.max_bet_percent_f := params.value_f;
     storage.id_to_asset[params.asset_id] := asset_record;
@@ -65,10 +68,9 @@ function add_asset(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    const asset : asset_t = params.asset;
     assert_valid_payout(params.payout_quot_f);
     assert_valid_max_bet(params.max_bet_percent_f);
-    assert_valid_asset(asset, Coinflip.invalid_asset);
+    const asset : asset_t = params.asset;
 
     const asset_key = Bytes.pack(asset);
     assert_none_with_error(
@@ -97,13 +99,14 @@ function add_asset_bank(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    var operations : list(operation) := Constants.no_operations;
-    var asset_record : asset_record_t := unwrap_asset_record(
-      params.asset_id,
-      storage.id_to_asset
-    );
-    const asset : asset_t = asset_record.asset;
     const amt : nat = params.amount;
+    require(amt > 0n, Coinflip.zero_amount);
+    var asset_record := unwrap(
+      storage.id_to_asset[params.asset_id],
+      Coinflip.unknown_asset
+    );
+    var operations : list(operation) := Constants.no_operations;
+    const asset : asset_t = asset_record.asset;
     case asset of [
     | Fa2(_) -> block {
       operations := list [
@@ -112,7 +115,6 @@ function add_asset_bank(
     }
     | Tez(_) -> require(Tezos.amount = amt * 1mutez, Coinflip.invalid_amount)
     ];
-    require(amt > 0n, Coinflip.zero_amount);
 
     asset_record.bank := asset_record.bank + amt;
     storage.id_to_asset[params.asset_id] := asset_record;
@@ -124,18 +126,20 @@ function remove_asset_bank(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    var asset_record : asset_record_t := unwrap_asset_record(
-      params.asset_id,
-      storage.id_to_asset
-    );
     const amt : nat = params.amount;
+    require(amt > 0n, Coinflip.zero_amount);
+    var asset_record := unwrap(
+      storage.id_to_asset[params.asset_id],
+      Coinflip.unknown_asset
+    );
+    asset_record.bank := nat_or_error(
+      asset_record.bank - amt,
+      Coinflip.amount_too_high
+    );
     const operations = list [
       transfer_asset(asset_record.asset, Tezos.self_address, Tezos.sender, amt)
     ];
-    require(amt > 0n, Coinflip.zero_amount);
-    require(amt <= asset_record.bank, Coinflip.amount_too_high);
 
-    asset_record.bank := abs(asset_record.bank - amt);
     storage.id_to_asset[params.asset_id] := asset_record;
   } with (operations, storage);
 
@@ -164,9 +168,9 @@ function set_paused(
                         : return_t is
   block {
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
-    var asset_record : asset_record_t := unwrap_asset_record(
-      params.asset_id,
-      storage.id_to_asset
+    var asset_record := unwrap(
+      storage.id_to_asset[params.asset_id],
+      Coinflip.unknown_asset
     );
     asset_record.paused := params.paused;
     storage.id_to_asset[params.asset_id] := asset_record;
