@@ -366,6 +366,8 @@ class LocalChain():
     """ execute the entrypoint and save the resulting state and balance updates """
     def execute(self, call, amount=0, sender=alice, source=None, view_results=None):
         new_balance = self.balance + amount
+        if source == None:
+            source = sender
         res = call.interpret(
             amount=amount,
             storage=self.storage,
@@ -410,6 +412,9 @@ class LocalChain():
 
     """ just interpret, don't store anything """
     def interpret(self, call, amount=0, sender=alice, source=None, view_results=None):
+        if source == None:
+            source = sender
+            
         res = call.interpret(
             amount=amount,
             storage=self.storage,
