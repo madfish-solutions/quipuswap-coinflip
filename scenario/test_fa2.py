@@ -27,7 +27,7 @@ class CoinflipTest(TestCase):
         cls.init_storage = storage
 
     def test_asset_add(self):
-        chain = LocalChain(storage=self.init_storage)
+        chain = MockChain(storage=self.init_storage)
 
         add_asset = self.ct.add_asset(
             payout_quot_f=int(1.5 * 1e18),
@@ -47,7 +47,7 @@ class CoinflipTest(TestCase):
         self.assertEqual(transfers[0]["destination"], contract_self_address)
 
     def test_bet_won(self):
-        chain = LocalChain(storage=self.init_storage)
+        chain = MockChain(storage=self.init_storage)
 
         add_asset = self.ct.add_asset(
             payout_quot_f=int(1.5 * 1e18),
@@ -96,7 +96,7 @@ class CoinflipTest(TestCase):
             res = chain.execute(self.ct.remove_asset_bank(1, 0), sender=admin)
 
     def test_bet_lost(self):
-        chain = LocalChain(storage=self.init_storage)
+        chain = MockChain(storage=self.init_storage)
 
         add_asset = self.ct.add_asset(
             payout_quot_f=int(1.5 * 1e18),
@@ -136,7 +136,7 @@ class CoinflipTest(TestCase):
 
 
     def test_reveal_after_bank_removed(self):
-        chain = LocalChain(storage=self.init_storage)
+        chain = MockChain(storage=self.init_storage)
 
         add_asset = self.ct.add_asset(
             payout_quot_f=int(1.5 * 1e18),
@@ -179,7 +179,7 @@ class CoinflipTest(TestCase):
             res = chain.execute(self.ct.remove_asset_bank(1, 0), sender=admin)
 
     def test_network_fee(self):
-        chain = LocalChain(storage=self.init_storage)
+        chain = MockChain(storage=self.init_storage)
 
         add_asset = self.ct.add_asset(
             payout_quot_f=int(1.5 * 1e18),

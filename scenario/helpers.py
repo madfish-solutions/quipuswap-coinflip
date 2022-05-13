@@ -1,8 +1,8 @@
-import sys
 from os import urandom
-from pytezos import pytezos
 
 from pytezos.crypto.encoding import base58_encode
+from collections import defaultdict
+
 
 BLOCK_TIME = 30
 
@@ -352,7 +352,7 @@ def operator_add(owner, operator, token_id=0):
         }
     }
 
-class LocalChain():
+class MockChain():
     def __init__(self, storage):
         self.storage = storage
 
@@ -362,6 +362,7 @@ class LocalChain():
         self.payouts = {}
         self.contract_balances = {}
         self.last_res = None
+        self.tokens = defaultdict(lambda: defaultdict(int))
 
     """ execute the entrypoint and save the resulting state and balance updates """
     def execute(self, call, amount=0, sender=alice, source=None, view_results=None):
@@ -439,3 +440,17 @@ class LocalChain():
     def advance_blocks(self, count=1):
         self.now += count * BLOCK_TIME
         self.level += count
+
+    # TODO token id
+    def apply_transfers(self, transfers):
+        for transfer in transfers:
+            amount = transfer["amount"]
+            address = transfer["token_address"]
+            dst = transfer["destination"]
+            src = transfer["source"]
+            # if not address in self.tokens:
+                # self.tokens[address] = {}
+            ledger = self.tokens[address]
+
+            ledger[dst] += amount
+            ledger[src] -= amount
