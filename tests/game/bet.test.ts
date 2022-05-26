@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 
 import accounts, { alice } from '../../scripts/sandbox/accounts';
-import { getAccountAssetIdPairKey } from '../../utils/byte-keys';
+import { getAccountAssetIdPairKey } from '../../utils/keys';
 import { Tezos } from '../../utils/helpers';
 import {
   makeAllAssetsWithBankCoinflip,

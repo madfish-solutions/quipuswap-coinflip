@@ -70,17 +70,15 @@ function add_asset(
     require(Tezos.sender = storage.admin, Coinflip.not_admin);
     assert_valid_payout(params.payout_quot_f);
     assert_valid_max_bet(params.max_bet_percent_f);
-    const asset : asset_t = params.asset;
 
-    const asset_key = Bytes.pack(asset);
     assert_none_with_error(
-      storage.asset_to_id[asset_key],
+      storage.asset_to_id[params.asset],
       Coinflip.asset_exists
     );
 
-    storage.asset_to_id[asset_key] := storage.assets_counter;
+    storage.asset_to_id[params.asset] := storage.assets_counter;
     storage.id_to_asset[storage.assets_counter] := record [
-      asset             = asset;
+      asset             = params.asset;
       payout_quot_f     = params.payout_quot_f;
       bank              = 0n;
       max_bet_percent_f = params.max_bet_percent_f;

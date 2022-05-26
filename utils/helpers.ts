@@ -4,8 +4,10 @@ import { TransactionOperation } from "@taquito/taquito/dist/types/operations/tra
 import config from "../config";
 import { confirmOperation } from "./confirmation";
 import { MichelsonMap, TezosToolkit } from "@taquito/taquito";
+import { MichelsonMapKey } from "@taquito/michelson-encoder";
 import BigNumber from "bignumber.js";
 import chalk from "chalk";
+import { MichelsonV1Expression } from "@taquito/rpc";
 
 const accounts = config.networks.sandbox.accounts;
 export const tezPrecision = 1e6;
@@ -241,4 +243,14 @@ export function validateValue(validationFunc, value) {
     ];
     throw new Error("Dev address must be valid, got " + error_values[valid]);
   }
+}
+
+export function michelsonMapFromEntries<K extends MichelsonMapKey, V>(
+  entries: [K, V][],
+  mapType: MichelsonV1Expression
+) {
+  const result = new MichelsonMap<K, V>(mapType);
+  entries.forEach(([key, value]) => result.set(key, value));
+
+  return result;
 }

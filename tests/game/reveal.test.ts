@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 
 import accounts from '../../scripts/sandbox/accounts';
-import { getAccountAssetIdPairKey } from '../../utils/byte-keys';
+import { getAccountAssetIdPairKey } from '../../utils/keys';
 import {
   makeAssetsWithGamesCoinflip,
   makeAssetRecord,
