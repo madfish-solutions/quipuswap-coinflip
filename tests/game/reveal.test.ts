@@ -1,13 +1,12 @@
 import BigNumber from 'bignumber.js';
 
 import accounts from '../../scripts/sandbox/accounts';
-import { getAccountAssetIdPairKey } from '../../utils/byte-keys';
 import {
   makeAssetsWithGamesCoinflip,
   makeAssetRecord,
   makeFA2
 } from "../account-contracts-proxies";
-import { Coinflip, Game, TEZ_ASSET } from "../coinflip";
+import { Coinflip, Game, GamersStatsKey, TEZ_ASSET } from "../coinflip";
 import {
   defaultFA2AssetId,
   defaultFA2TokenId,
@@ -144,10 +143,10 @@ describe('Coinflip reveal test', function () {
                   const assetId = assetName === 'tez'
                     ? tezAssetId
                     : defaultFA2AssetId;
-                  const statsKey = getAccountAssetIdPairKey(
+                  const statsKey: GamersStatsKey = [
                     accounts[accountAlias].pkh,
-                    assetId
-                  );
+                    new BigNumber(assetId)
+                  ];
                   const {
                     total_won_amt: prevTotalWonAmt,
                     total_lost_amt: prevTotalLostAmt

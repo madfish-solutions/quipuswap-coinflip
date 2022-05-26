@@ -145,13 +145,13 @@ Note: new game ID is equal to previous `games_counter` value.
 - the value in `id_to_asset` bigmap for `asset_id` key takes these changes:
   * `total_bets_amt` is increased by `bid_size`;
   * `games_count` is increased by 1.
-- if the entrypoint caller calls `bet` entrypoint for the first time, a new pair is created in `gamers_stats` with key equal to the entrypoint caller address and value equal to record with these parameters:
+- if the entrypoint caller calls `bet` entrypoint for the first time, a new pair is created in `gamers_stats` with key equal to the (entrypoint caller address, asset id) tuple and value equal to record with these parameters:
   * `last_game_id` equal to new game ID;
   * `games_count` equal to 1;
   * `total_won_amt` equal to 0;
   * `total_lost_amt` equal to 0;
   * `total_bets_amt` equal to 1;
-- if the entrypoint caller has called `bet` entrypoint before, the value in `gamers_stats` for the entrypoint caller address takes these changes:
+- if the entrypoint caller has called `bet` entrypoint before, the value in `gamers_stats` for the (entrypoint caller address, asset id) tuple takes these changes:
   * `last_game_id` becomes equal to new game ID;
   * `games_count` is increased by 1;
   * `total_bets_amt` is increased by 1.

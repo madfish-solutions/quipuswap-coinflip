@@ -37,6 +37,8 @@ interface FA2TokenAsset {
 
 export type Asset = TezAsset | FA2TokenAsset;
 
+export type GamersStatsKey = [string, BigNumber];
+
 export interface Game {
   asset_id: BigNumber;
   gamer: string;
@@ -75,7 +77,7 @@ export interface CoinflipStorage {
   network_fee: BigNumber;
   asset_to_id: MichelsonMap<string, BigNumber>;
   id_to_asset: MichelsonMap<string, AssetRecord>;
-  gamers_stats: MichelsonMap<string, GamerStats>;
+  gamers_stats: MichelsonMap<GamersStatsKey, GamerStats>;
   network_bank: BigNumber;
 }
 
@@ -85,6 +87,12 @@ interface RawCoinflipStorage extends Omit<
   CoinflipStorage,
   BigMapName
 >, Record<BigMapName, BigMapAbstraction> {}
+
+interface BigMapsKeysToUpdate extends Partial<
+  Record<Exclude<BigMapName, 'gamers_stats'>, string[]>
+> {
+  gamers_stats?: GamersStatsKey[];
+}
 
 export const TEZ_ASSET = { tez: Symbol() };
 
@@ -199,7 +207,7 @@ export class Coinflip {
   }
 
   async updateStorage(
-    maps: Partial<Record<BigMapName, string[]>> = {}
+    maps: BigMapsKeysToUpdate = {}
   ) {
     const {
       games: oldGames,

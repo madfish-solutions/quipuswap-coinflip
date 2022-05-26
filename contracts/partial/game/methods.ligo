@@ -65,10 +65,7 @@ function bet(
       total_bets_amt += params.bid_size;
     ];
     storage.id_to_asset[params.asset_id] := asset_record;
-    const gamer_stats_key = Bytes.pack(record [
-      address = Tezos.sender;
-      asset_id = params.asset_id;
-    ]);
+    const gamer_stats_key = (Tezos.sender, params.asset_id);
     var new_gamer_stats : gamer_stats_t := unwrap_or(
       storage.gamers_stats[gamer_stats_key],
       Constants.ini_gamer_stats
@@ -108,10 +105,7 @@ function reveal(
         var new_gamers_stats := acc.gamers_stats;
         const truncated_random = one_reveal.random_value mod
           Constants.max_random;
-        const gamer_stats_key = Bytes.pack(record [
-          address = game.gamer;
-          asset_id = game.asset_id;
-        ]);
+        const gamer_stats_key = (game.gamer, game.asset_id);
         var new_gamer_stats : gamer_stats_t := unwrap_or(
           new_gamers_stats[gamer_stats_key],
           Constants.ini_gamer_stats

@@ -56,7 +56,7 @@ type storage_t          is [@layout:comb] record [
   network_fee             : tez;
   asset_to_id             : big_map(bytes, nat);
   id_to_asset             : big_map(nat, asset_record_t);
-  gamers_stats            : big_map(bytes, gamer_stats_t);
+  gamers_stats            : big_map(address * nat, gamer_stats_t);
   network_bank            : tez;
 ]
 

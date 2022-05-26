@@ -1,9 +1,10 @@
 import { execSync } from "child_process";
 import { InMemorySigner } from "@taquito/signer";
-import { TransactionOperation } from "@taquito/taquito/dist/types/operations/transaction-operation";
 import config from "../config";
 import { confirmOperation } from "./confirmation";
-import { MichelsonMap, TezosToolkit } from "@taquito/taquito";
+import { MichelsonMapKey } from "@taquito/michelson-encoder";
+import { MichelsonV1Expression } from "@taquito/rpc";
+import { MichelsonMap, TezosToolkit, TransactionOperation } from "@taquito/taquito";
 import BigNumber from "bignumber.js";
 import chalk from "chalk";
 
@@ -241,4 +242,14 @@ export function validateValue(validationFunc, value) {
     ];
     throw new Error("Dev address must be valid, got " + error_values[valid]);
   }
+}
+
+export function michelsonMapFromEntries<K extends MichelsonMapKey, V>(
+  entries: [K, V][],
+  mapType: MichelsonV1Expression
+) {
+  const result = new MichelsonMap<K, V>(mapType);
+  entries.forEach(([key, value]) => result.set(key, value));
+
+  return result;
 }

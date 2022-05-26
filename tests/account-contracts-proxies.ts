@@ -1,7 +1,7 @@
 import { MichelsonMap } from '@taquito/taquito';
 import BigNumber from 'bignumber.js';
 
-import { initTezos } from '../utils/helpers';
+import { initTezos, michelsonMapFromEntries } from '../utils/helpers';
 import { Tezos, signerAlice } from './utils/cli';
 import {
   Asset,
@@ -9,6 +9,7 @@ import {
   Coinflip,
   CoinflipStorage,
   Game,
+  GamersStatsKey,
   GamerStats,
   TEZ_ASSET
 } from './coinflip';
@@ -27,70 +28,83 @@ import {
   tezAssetId,
   defaultFA2AssetId
 } from './constants';
-import { getAccountAssetIdPairKey, getAssetKey } from '../utils/byte-keys';
+import { getAssetKey } from '../utils/byte-keys';
 import { BetProxy } from './helpers/bet-proxy';
+import { gamerStatsSchema } from '../utils/schemas';
 
 const makeStorage = (
   assets: AssetRecord[] = [],
   networkBank: BigNumber.Value = 0,
   networkFee: BigNumber.Value = defaultStorage.network_fee,
   games: Game[] = []
-): CoinflipStorage => ({
-  ...defaultStorage,
-  network_fee: new BigNumber(networkFee),
-  network_bank: new BigNumber(networkBank),
-  assets_counter: new BigNumber(assets.length),
-  asset_to_id: MichelsonMap.fromLiteral(
-    Object.fromEntries(
-      assets.map((asset, index) => [
-        getAssetKey(asset.asset),
-        new BigNumber(index)
-      ])
-    )
-  ) as CoinflipStorage['asset_to_id'],
-  id_to_asset: MichelsonMap.fromLiteral(
-    Object.fromEntries(assets.map((asset, index) => [index.toString(), asset]))
-  ) as CoinflipStorage['id_to_asset'],
-  games_counter: new BigNumber(games.length),
-  games: MichelsonMap.fromLiteral(
-    Object.fromEntries(games.map((game, index) => [index.toString(), game]))
-  ) as CoinflipStorage['games'],
-  gamers_stats: MichelsonMap.fromLiteral(
-    games.reduce<Record<string, GamerStats>>(
-      (statsPart, game, index) => {
-        const key = getAccountAssetIdPairKey(
-          game.gamer,
-          game.asset_id
-        );
-        const prevGamerStats = statsPart[key] ?? {
-          last_game_id: new BigNumber(0),
-          games_count: new BigNumber(0),
-          total_won_amt: new BigNumber(0),
-          total_lost_amt: new BigNumber(0),
-          total_bets_amt: new BigNumber(0)
-        };
-        const { payout_quot_f } = assets[game.asset_id.toNumber()];
-        const won_amt = payout_quot_f.times(game.bid_size).idiv(PRECISION);
-        statsPart[key] = {
-          last_game_id: new BigNumber(index),
-          games_count: prevGamerStats.games_count.plus(1),
-          total_won_amt: prevGamerStats.total_won_amt.plus(
-            'won' in game.status ? won_amt : 0
-          ),
-          total_bets_amt: prevGamerStats.total_bets_amt.plus(
-            game.bid_size
-          ),
-          total_lost_amt: prevGamerStats.total_lost_amt.plus(
-            'lost' in game.status ? game.bid_size : 0
-          )
-        };
+): CoinflipStorage => {
+  const gamerStats = games.reduce<Record<string, GamerStats>>(
+    (statsPart, game, index) => {
+      const key = `${game.gamer}_${game.asset_id.toFixed()}`;
+      const prevGamerStats = statsPart[key] ?? {
+        last_game_id: new BigNumber(0),
+        games_count: new BigNumber(0),
+        total_won_amt: new BigNumber(0),
+        total_lost_amt: new BigNumber(0),
+        total_bets_amt: new BigNumber(0)
+      };
+      const { payout_quot_f } = assets[game.asset_id.toNumber()];
+      const won_amt = payout_quot_f.times(game.bid_size).idiv(PRECISION);
+      statsPart[key] = {
+        last_game_id: new BigNumber(index),
+        games_count: prevGamerStats.games_count.plus(1),
+        total_won_amt: prevGamerStats.total_won_amt.plus(
+          'won' in game.status ? won_amt : 0
+        ),
+        total_bets_amt: prevGamerStats.total_bets_amt.plus(
+          game.bid_size
+        ),
+        total_lost_amt: prevGamerStats.total_lost_amt.plus(
+          'lost' in game.status ? game.bid_size : 0
+        )
+      };
 
-        return statsPart;
-      },
-      {}
+      return statsPart;
+    },
+    {}
+  );
+
+  return {
+    ...defaultStorage,
+    network_fee: new BigNumber(networkFee),
+    network_bank: new BigNumber(networkBank),
+    assets_counter: new BigNumber(assets.length),
+    asset_to_id: MichelsonMap.fromLiteral(
+      Object.fromEntries(
+        assets.map((asset, index) => [
+          getAssetKey(asset.asset),
+          new BigNumber(index)
+        ])
+      )
+    ) as CoinflipStorage['asset_to_id'],
+    id_to_asset: MichelsonMap.fromLiteral(
+      Object.fromEntries(assets.map((asset, index) => [index.toString(), asset]))
+    ) as CoinflipStorage['id_to_asset'],
+    games_counter: new BigNumber(games.length),
+    games: MichelsonMap.fromLiteral(
+      Object.fromEntries(games.map((game, index) => [index.toString(), game]))
+    ) as CoinflipStorage['games'],
+    gamers_stats: michelsonMapFromEntries(
+      Object.entries(gamerStats).map<[GamersStatsKey, GamerStats]>(([key, value]) => {
+        const [gamer, rawAssetId] = key.split('_');
+
+        return [[gamer, new BigNumber(rawAssetId)], value];
+      }),
+      {
+        prim: 'map',
+        args: [
+          { prim: 'pair', args: [{ prim: 'address' }, { prim: 'nat' }] },
+          gamerStatsSchema.val
+        ]
+      }
     )
-  ) as CoinflipStorage['gamers_stats']
-});
+  };
+};
 
 export const makeAssetRecord = (
   asset: Asset,

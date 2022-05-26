@@ -40,14 +40,6 @@ const assetSchema = new Schema({
   annots: ['%asset']
 });
 
-const addressAssetIdPairSchema = new Schema({
-  prim: 'pair',
-  args: [
-    { prim: 'address', annots: ['%address'] },
-    { prim: 'nat', annots: ['%asset_id'] }
-  ]
-});
-
 function replaceAddressesWithBytes(expr: MichelsonV1Expression) {
   if (expr instanceof Array) {
     return expr.map(value => replaceAddressesWithBytes(value));
@@ -80,11 +72,4 @@ function getPackedBytesKey<T>(data: T, schema: Schema) {
 
 export function getAssetKey(asset: Asset) {
   return getPackedBytesKey(asset, assetSchema);
-}
-
-export function getAccountAssetIdPairKey(
-  address: string,
-  asset_id: BigNumber.Value
-) {
-  return getPackedBytesKey({ address, asset_id }, addressAssetIdPairSchema);
 }
