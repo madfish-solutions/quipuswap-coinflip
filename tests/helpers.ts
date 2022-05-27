@@ -13,11 +13,10 @@ import { InternalOperationResult } from '@taquito/rpc';
 import BigNumber from 'bignumber.js';
 
 import { confirmOperation } from '../utils/confirmation';
-import { Coinflip, CoinflipStorage } from './coinflip';
+import { Coinflip, CoinflipStorage, GamersStatsKey } from './coinflip';
 import { FA2 } from './helpers/FA2';
 import accounts from '../scripts/sandbox/accounts';
 import { defaultFA2AssetId, defaultFA2TokenId, tezAssetId } from './constants';
-import { getAccountAssetIdPairKey } from '../utils/keys';
 
 export type BatchContentsEntry = 
   | ContractMethod<ContractProvider>
@@ -220,7 +219,7 @@ export async function testcaseWithBalancesDiff(
       : accounts[alias].pkh
   );
   const gamersAliases = ownersAliases.filter(alias => alias !== CONTRACT_ALIAS);
-  const gamersAddresses = gamersAliases.map(alias => accounts[alias].pkh);
+  const gamersAddresses: string[] = gamersAliases.map(alias => accounts[alias].pkh);
   await Promise.all([
     fa2.updateStorage({ account_info: ownersAddresses }),
     ...gamersAliases.map(
@@ -229,7 +228,7 @@ export async function testcaseWithBalancesDiff(
         gamers_stats: gamersAddresses
           .map(
             gamerAddress => [tezAssetId, defaultFA2AssetId].map(
-              assetId => getAccountAssetIdPairKey(gamerAddress, assetId)
+              (assetId): GamersStatsKey => [gamerAddress, new BigNumber(assetId)]
             )
           )
           .flat()
@@ -254,7 +253,7 @@ export async function testcaseWithBalancesDiff(
         gamers_stats: gamersAddresses
           .map(
             gamerAddress => [tezAssetId, defaultFA2AssetId].map(
-              assetId => getAccountAssetIdPairKey(gamerAddress, assetId)
+              (assetId): GamersStatsKey => [gamerAddress, new BigNumber(assetId)]
             )
           )
           .flat()
