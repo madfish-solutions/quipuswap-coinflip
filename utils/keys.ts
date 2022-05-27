@@ -10,43 +10,7 @@ import {
   MichelsonV1ExpressionExtended
 } from '@taquito/rpc';
 import BigNumber from 'bignumber.js';
-
-interface TezAsset {
-  tez: Symbol;
-}
-
-interface FA2TokenAsset {
-  fa2: {
-    address: string;
-    id: BigNumber;
-  }
-}
-
-type Asset = TezAsset | FA2TokenAsset;
-
-const assetSchema = new Schema({
-  prim: 'or',
-  args: [
-    {
-      prim: 'pair',
-      args: [
-        { prim: 'address', annots: ['%address'] },
-        { prim: 'nat', annots: ['%id'] }
-      ],
-      annots: ['%fa2']
-    },
-    { prim: 'unit', annots: ['%tez'] }
-  ],
-  annots: ['%asset']
-});
-
-const addressAssetIdPairSchema = new Schema({
-  prim: 'pair',
-  args: [
-    { prim: 'address', annots: ['%address'] },
-    { prim: 'nat', annots: ['%asset_id'] }
-  ]
-});
+import { addressAssetIdPairSchema } from './schemas';
 
 function replaceAddressesWithBytes(expr: MichelsonV1Expression) {
   if (expr instanceof Array) {
@@ -76,10 +40,6 @@ function getPackedBytesKey<T>(data: T, schema: Schema) {
   const keyToEncode = replaceAddressesWithBytes(schema.Encode(data));
 
   return packDataBytes(keyToEncode).bytes;
-}
-
-export function getAssetKey(asset: Asset) {
-  return getPackedBytesKey(asset, assetSchema);
 }
 
 export function getAccountAssetIdPairKey(
