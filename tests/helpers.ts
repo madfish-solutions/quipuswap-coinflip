@@ -17,10 +17,6 @@ import { Coinflip, CoinflipStorage, GamersStatsKey } from './coinflip';
 import { FA2 } from './helpers/FA2';
 import accounts from '../scripts/sandbox/accounts';
 import { defaultFA2AssetId, defaultFA2TokenId, tezAssetId } from './constants';
-<<<<<<< HEAD
-=======
-import { getAccountAssetIdPairKey } from '../utils/keys';
->>>>>>> 49d02726a5789a8d7f381950e8d71788bd75dd7f
 
 export type BatchContentsEntry = 
   | ContractMethod<ContractProvider>
