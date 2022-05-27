@@ -18,7 +18,6 @@ import {
 } from './helpers';
 import defaultStorage from "./storage/coinflip";
 import { FA2 } from './helpers/FA2';
-import { getAssetKey } from '../utils/byte-keys';
 
 export type CoinSide = { head: Symbol } | { tail: Symbol };
 
@@ -75,7 +74,7 @@ export interface CoinflipStorage {
   games: MichelsonMap<string, Game>;
   assets_counter: BigNumber;
   network_fee: BigNumber;
-  asset_to_id: MichelsonMap<string, BigNumber>;
+  asset_to_id: MichelsonMap<Asset, BigNumber>;
   id_to_asset: MichelsonMap<string, AssetRecord>;
   gamers_stats: MichelsonMap<GamersStatsKey, GamerStats>;
   network_bank: BigNumber;
@@ -88,10 +87,11 @@ interface RawCoinflipStorage extends Omit<
   BigMapName
 >, Record<BigMapName, BigMapAbstraction> {}
 
-interface BigMapsKeysToUpdate extends Partial<
-  Record<Exclude<BigMapName, 'gamers_stats'>, string[]>
-> {
+interface BigMapsKeysToUpdate {
+  games?: string[];
+  id_to_asset?: string[];
   gamers_stats?: GamersStatsKey[];
+  asset_to_id?: Asset[];
 }
 
 export const TEZ_ASSET = { tez: Symbol() };
@@ -252,9 +252,8 @@ export class Coinflip {
   }
 
   async updateAssetRecord(asset: Asset) {
-    const assetKey = getAssetKey(asset);
-    await this.updateStorage({ asset_to_id: [assetKey] });
-    const assetId = this.storage.asset_to_id.get(assetKey);
+    await this.updateStorage({ asset_to_id: [asset] });
+    const assetId = this.storage.asset_to_id.get(asset);
 
     if (assetId) {
       await this.updateStorage({ id_to_asset: [assetId.toFixed()] });
@@ -262,9 +261,8 @@ export class Coinflip {
   }
 
   getAssetRecord(asset: Asset): AssetRecord | undefined {
-    const assetKey = getAssetKey(asset);
-    const assetId = this.storage.asset_to_id.get(assetKey);
-    
+    const assetId = this.storage.asset_to_id.get(asset);
+
     if (!assetId) {
       return undefined;
     }

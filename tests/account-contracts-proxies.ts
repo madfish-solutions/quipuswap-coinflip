@@ -28,9 +28,9 @@ import {
   tezAssetId,
   defaultFA2AssetId
 } from './constants';
-import { getAssetKey } from '../utils/byte-keys';
-import { BetProxy } from './helpers/bet-proxy';
 import { gamerStatsSchema } from '../utils/schemas';
+import { BetProxy } from './helpers/bet-proxy';
+import { assetRecordSchema, assetSchema } from '../utils/schemas';
 
 const makeStorage = (
   assets: AssetRecord[] = [],
@@ -74,14 +74,12 @@ const makeStorage = (
     network_fee: new BigNumber(networkFee),
     network_bank: new BigNumber(networkBank),
     assets_counter: new BigNumber(assets.length),
-    asset_to_id: MichelsonMap.fromLiteral(
-      Object.fromEntries(
-        assets.map((asset, index) => [
-          getAssetKey(asset.asset),
-          new BigNumber(index)
-        ])
-      )
-    ) as CoinflipStorage['asset_to_id'],
+    asset_to_id: michelsonMapFromEntries(
+      [...assets.entries()].map(
+        ([index, { asset }]) => [asset, new BigNumber(index)]
+      ),
+      { prim: "map", args: [assetSchema.val, { prim: "nat" }] }
+    ),
     id_to_asset: MichelsonMap.fromLiteral(
       Object.fromEntries(assets.map((asset, index) => [index.toString(), asset]))
     ) as CoinflipStorage['id_to_asset'],

@@ -89,7 +89,7 @@ This entrypoint is used to enable bets with either TEZ of FA2 tokens.
 ##### Postconditions
 
 Note: new asset ID is equal to previous `games_counter` value.
-- a new pair is created in `asset_to_id` bigmap with key equal to `asset` value, which is converted to bytes, and value equal to new asset ID. See `getAssetKey` method in [bytes-keys.ts](utils/byte-keys.ts) for the way to get that key using Taquito;
+- a new pair is created in `asset_to_id` bigmap with key equal to `asset` value, and value equal to new asset ID;
 - a new pair is created in `id_to_asset` bigmap with key equal to new asset ID and value equal to record with these parameters:
   * `asset` equal to `asset`;
   * `payout_quot_f` equal to `payout_quot_f`;
