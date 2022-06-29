@@ -21,7 +21,7 @@ function bet(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = Tezos.source, Coinflip.indirect_bet);
+    require(Tezos.get_sender() = Tezos.get_source(), Coinflip.indirect_bet);
     require(params.bid_size > 0n, Coinflip.zero_amount);
     var asset_record := unwrap(
       storage.id_to_asset[params.asset_id],
@@ -39,13 +39,13 @@ function bet(
       params.bid_size,
       storage.network_fee
     );
-    require(expected_tez_amount = Tezos.amount, Coinflip.invalid_amount);
+    require(expected_tez_amount = Tezos.get_amount(), Coinflip.invalid_amount);
     const operations : list(operation) = case asset of [
     | Tez(_)     -> Constants.no_operations
     | Fa2(token) -> list [
       transfer_fa2(
-        Tezos.sender,
-        Tezos.self_address,
+        Tezos.get_sender(),
+        Tezos.get_self_address(),
         params.bid_size,
         token.address,
         token.id
@@ -54,8 +54,8 @@ function bet(
     ];
     storage.games[storage.games_counter] := record [
       asset_id      = params.asset_id;
-      gamer         = Tezos.sender;
-      start         = Tezos.now;
+      gamer         = Tezos.get_sender();
+      start         = Tezos.get_now();
       bid_size      = params.bid_size;
       bet_coin_side = params.coin_side;
       status        = Started;
@@ -65,7 +65,7 @@ function bet(
       total_bets_amt += params.bid_size;
     ];
     storage.id_to_asset[params.asset_id] := asset_record;
-    const gamer_stats_key = (Tezos.sender, params.asset_id);
+    const gamer_stats_key = (Tezos.get_sender(), params.asset_id);
     var new_gamer_stats : gamer_stats_t := unwrap_or(
       storage.gamers_stats[gamer_stats_key],
       Constants.ini_gamer_stats
@@ -84,7 +84,7 @@ function reveal(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.server, Coinflip.not_server);
+    require(Tezos.get_sender() = storage.server, Coinflip.not_server);
     require(List.length(params) > 0n, Coinflip.empty_list);
 
     function process_reveals(
@@ -127,7 +127,7 @@ function reveal(
             payout_size;
           new_operations := transfer_asset(
             asset_record.asset,
-            Tezos.self_address,
+            Tezos.get_self_address(),
             game.gamer,
             payout_size
           ) # acc.operations;

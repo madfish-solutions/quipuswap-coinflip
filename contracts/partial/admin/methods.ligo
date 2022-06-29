@@ -10,7 +10,7 @@ function set_admin(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     storage.admin := params;
   } with (Constants.no_operations, storage);
 
@@ -19,7 +19,7 @@ function set_server(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     storage.server := params;
   } with (Constants.no_operations, storage);
 
@@ -28,7 +28,7 @@ function set_payout_quotient(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     assert_valid_payout(params.value_f);
     var asset_record := unwrap(
       storage.id_to_asset[params.asset_id],
@@ -43,7 +43,7 @@ function set_max_bet(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     assert_valid_max_bet(params.value_f);
     var asset_record := unwrap(
       storage.id_to_asset[params.asset_id],
@@ -58,7 +58,7 @@ function set_network_fee(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     storage.network_fee := new_fee;
   } with (Constants.no_operations, storage);
 
@@ -67,7 +67,7 @@ function add_asset(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     assert_valid_payout(params.payout_quot_f);
     assert_valid_max_bet(params.max_bet_percent_f);
 
@@ -96,7 +96,7 @@ function add_asset_bank(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     const amt : nat = params.amount;
     require(amt > 0n, Coinflip.zero_amount);
     var asset_record := unwrap(
@@ -108,10 +108,10 @@ function add_asset_bank(
     case asset of [
     | Fa2(_) -> block {
       operations := list [
-        transfer_asset(asset, Tezos.sender, Tezos.self_address, amt)
+        transfer_asset(asset, Tezos.get_sender(), Tezos.get_self_address(), amt)
       ];
     }
-    | Tez(_) -> require(Tezos.amount = amt * 1mutez, Coinflip.invalid_amount)
+    | Tez(_) -> require(Tezos.get_amount() = amt * 1mutez, Coinflip.invalid_amount)
     ];
 
     asset_record.bank := asset_record.bank + amt;
@@ -123,7 +123,7 @@ function remove_asset_bank(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     const amt : nat = params.amount;
     require(amt > 0n, Coinflip.zero_amount);
     var asset_record := unwrap(
@@ -135,7 +135,7 @@ function remove_asset_bank(
       Coinflip.amount_too_high
     );
     const operations = list [
-      transfer_asset(asset_record.asset, Tezos.self_address, Tezos.sender, amt)
+      transfer_asset(asset_record.asset, Tezos.get_self_address(), Tezos.get_sender(), amt)
     ];
 
     storage.id_to_asset[params.asset_id] := asset_record;
@@ -146,7 +146,7 @@ function withdraw_network_fee(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     require(amt > 0mutez, Coinflip.zero_amount);
 
     storage.network_bank := unwrap(
@@ -155,7 +155,7 @@ function withdraw_network_fee(
     );
   } with (
     list [
-      transfer_asset(Tez(unit), Tezos.self_address, Tezos.sender, amt / 1mutez)
+      transfer_asset(Tez(unit), Tezos.get_self_address(), Tezos.get_sender(), amt / 1mutez)
     ],
     storage
   );
@@ -165,7 +165,7 @@ function set_paused(
   var storage           : storage_t)
                         : return_t is
   block {
-    require(Tezos.sender = storage.admin, Coinflip.not_admin);
+    require(Tezos.get_sender() = storage.admin, Coinflip.not_admin);
     var asset_record := unwrap(
       storage.id_to_asset[params.asset_id],
       Coinflip.unknown_asset
