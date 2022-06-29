@@ -41,6 +41,10 @@ export const config = {
       host: "https://mainnet-tezos.giganode.io",
       port: 443,
     },
+    ghostnet: {
+      host: "https://ghostnet.smartpy.io",
+      port: 443,
+    },
   },
   deployerSK:
     process.env.DEX_DEPLOYER_SK ||
