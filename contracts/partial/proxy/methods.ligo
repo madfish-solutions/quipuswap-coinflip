@@ -11,5 +11,5 @@ function proxy_bet(
       Tezos.get_entrypoint_opt("%bet", storage.gamble_address);
     const gamble_contract = unwrap(gamble_contract_opt, Bet_proxy.not_gambling);
   } with (list [
-    Tezos.transaction(Bet(params), Tezos.amount, gamble_contract)
+    Tezos.transaction(Bet(params), Tezos.get_amount(), gamble_contract)
   ], storage);

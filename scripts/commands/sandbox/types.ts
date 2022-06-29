@@ -20,13 +20,8 @@ export type FlextesaTezosProtocol = {
 };
 
 export enum TezosProtocols {
-  CARTHAGE = "carthage",
-  DELPHI = "delphi",
-  EDO = "edo",
-  FLORENCE = "florence",
-  GRANADA = "granada",
-  HANGZHOU = "hangzhou",
   ITHACA = "ithaca",
+  JAKARTA = "jakarta",
 }
 
 export declare type FlextesaTezosProtocols = {

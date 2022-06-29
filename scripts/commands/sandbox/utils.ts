@@ -9,40 +9,15 @@ import {
 } from "./types";
 
 export const flextesaProtocols: FlextesaTezosProtocols = {
-  [TezosProtocols.CARTHAGE]: {
-    hash: "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb",
-    prefix: "006-PsCARTHA",
-    kind: "Carthage",
-  },
-  [TezosProtocols.DELPHI]: {
-    hash: "PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo",
-    prefix: "007-PsDELPH1",
-    kind: "Delphi",
-  },
-  [TezosProtocols.EDO]: {
-    hash: "PtEdo2ZkT9oKpimTah6x2embF25oss54njMuPzkJTEi5RqfdZFA",
-    prefix: "008-PtEdoTez",
-    kind: "Edo",
-  },
-  [TezosProtocols.FLORENCE]: {
-    hash: "PsFLorenaUUuikDWvMDr6fGBRG8kt3e3D3fHoXK1j1BFRxeSH4i",
-    prefix: "009-PsFLoren",
-    kind: "Florence",
-  },
-  [TezosProtocols.GRANADA]: {
-    hash: "PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV",
-    prefix: "010-PtGRANAD",
-    kind: "Granada",
-  },
-  [TezosProtocols.HANGZHOU]: {
-    hash: "PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx",
-    prefix: "011-PtHangz2",
-    kind: "Hangzhou",
-  },
   [TezosProtocols.ITHACA]: {
     hash: "Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A",
     prefix: "012-Psithaca",
     kind: "Ithaca"
+  },
+  [TezosProtocols.JAKARTA]: {
+    hash: "PtJakart2xVj7pYXJBXrqHgd82rdkLey5ZeeGwDgPp9rhQUbSqY",
+    prefix: "013-Psjakarta",
+    kind: "Jakarta"
   }
 };
 
@@ -115,12 +90,12 @@ export const createProtocolParams = (
 };
 
 // Flextesa image
-const FLEXTESA_IMAGE = "oxheadalpha/flextesa:20220321";
+const FLEXTESA_IMAGE = "oxheadalpha/flextesa:20220510";
 
 // Name for the running Docker image
 export const POD_NAME = "flextesa-sandbox";
 
-const defaultProtocol = TezosProtocols.HANGZHOU;
+const defaultProtocol = TezosProtocols.JAKARTA;
 const defaultOptions: FlextesaOptions = config.networks.sandbox;
 
 export const startFlextesa = async (

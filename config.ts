@@ -5,13 +5,13 @@ dotenv.config();
 
 export const config = {
   repoName: "quipuswap-coinflip",
-  ligoVersion: "0.39.0",
+  ligoVersion: "0.45.0",
   preferredLigoFlavor: "pascaligo",
   networks: {
     sandbox: {
       host: "http://localhost",
       port: 20000,
-      protocol: TezosProtocols.ITHACA,
+      protocol: TezosProtocols.JAKARTA,
       genesisBlockHash: "random",
       defaultSignerSK: "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq",
       accounts: {
@@ -33,7 +33,7 @@ export const config = {
       },
     },
     testnet: {
-      host: "https://ithacanet.smartpy.io",
+      host: "https://jakartanet.smartpy.io",
       port: 443,
       faucet: null,
     },
